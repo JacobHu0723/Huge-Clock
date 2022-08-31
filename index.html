@@ -4,8 +4,8 @@
 <head>
 
 <meta charset="utf-8">
-
-<title>time</title>
+<link href="clock.png" rel="shortcut icon" />
+<title>Clock</title>
 
 <script type="text/javascript">
 
@@ -28,23 +28,12 @@ window.requestAnimationFrame(getDate)
 },1000/2)
 
 var d=new Date();   
-//var year=d.getFullYear()  //��ȡ��
 
-//var month=d.getMonth()+1;  //��ȡ�£��� Date ���󷵻��·� (0 ~ 11)�����ڴ˴�+1
+var hour=d.getHours()   //小时
 
-//var day=d.getDay()    //��ȡ��
+var minute=d.getMinutes()  //分钟
 
-//var days=d.getDate() //��ȡ����
-
-var hour=d.getHours()   //��ȡСʱ
-
-var minute=d.getMinutes()  //��ȡ����
-
-var second=d.getSeconds()   //��ȡ��
-
-//if(month<10) month="0"+month
-
-//if(days<10) days="0"+days
+var second=d.getSeconds()   //秒
 
 if(hour<10) hour="0"+hour
 
@@ -52,11 +41,7 @@ if(minute<10) minute="0"+minute
 
 if(second<10) second="0"+second
 
-//var week=new Array("������","����һ","���ڶ�","������","������","������","������")
-
 var Tools=document.getElementById("Main")
-
-//var da=year+" �� "+month+" �� "+days+" �� "+week[day]+" "+hour+" : "+minute+" :"+second
 
 var da=hour+" : "+minute+" :"+second
 
@@ -66,19 +51,26 @@ Tools.innerHTML=da
 
 </script>
 
+<script>  /*全屏*/
+    function Fullscreen(element) {
+      if(element.documentElement.requestFullscreen) {element.documentElement.requestFullscreen();}
+      if(element.exitFullscreen) {element.exitFullscreen();}
+    }
+</script>
+
 <style>
     div {
         font-size:220px; /*字体大小*/
         font-weight:bold;  /*粗体*/
         text-align:center;   /*水平居中*/
-        padding:150px 0;   /*垂直居中*/
+        padding:180px 0;   /*垂直居中*/
         font-family:"Microsoft YaHei"
         }
 </style>
 
 </head>
 
-<body>
+<body onclick="Fullscreen(document)">
 
 <div id="Main"></div>
 
