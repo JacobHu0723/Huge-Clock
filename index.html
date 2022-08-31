@@ -58,22 +58,40 @@ Tools.innerHTML=da
     }
 </script>
 
-<style>
+<style type="text/css">  /*设置时钟格式*/
     div {
-      font-size:220px; /*字体大小*/
-      font-weight:bold;  /*粗体*/
-      text-align:center;   /*水平居中*/
-	    position:fixed;  /*fixed 定位 元素的位置相对于浏览器窗口是固定位置 即使窗口是滚动的它也不会移动*/
-      top:170px;   /*垂直居中*/
-	    left:0;
-	    right:0;
-      font-family:"Microsoft YaHei"
-    }
+        font-size:220px; /*字体大小*/
+        font-weight:bold;  /*粗体*/
+        text-align:center;   /*水平居中*/
+	position:fixed;
+        top:170px;   /*垂直居中*/
+	bottom:170px;
+	left:0;
+	right:0;
+        font-family:"Microsoft YaHei"
+        }
+</style>
+
+<style type="text/css">  /*双击时钟不会选中*/
+  div{
+    -moz-user-select:none;/*火狐*/
+    -webkit-user-select:none;/*webkit浏览器*/
+    -ms-user-select:none;/*IE10*/
+    -khtml-user-select:none;/*早期浏览器*/
+      user-select:none;
+}
+</style>
+
+<style type="text/css">  /*页面设置占满*/
+  html,body{
+	height: 100%;
+	margin:0;
+  }
 </style>
 
 </head>
 
-<body onclick="Fullscreen(document)">
+<body ondblclick="Fullscreen(document)">
 
 <div id="Main"></div>
 
