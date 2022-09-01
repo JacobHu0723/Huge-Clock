@@ -52,10 +52,16 @@ Tools.innerHTML=da
 </script>
 
 <script type="text/javascript">  /*全屏*/
-    function Fullscreen(element) {
-      if(element.documentElement.requestFullscreen) {element.documentElement.requestFullscreen();}
-      if(element.exitFullscreen) {element.exitFullscreen();}
-    }
+  function Fullscreen(element) {
+    if(element.documentElement.requestFullscreen) {element.documentElement.requestFullscreen();} //Chrome
+    else if(element.documentElement.mozRequestFullScreen) {element.documentElement.mozRequestFullScreen();}  //Firefox 
+    else if (element.documentElement.webkitRequestFullscreen) {element.documentElement.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);}  //Opera  webkit浏览器
+    
+    if(element.exitFullscreen) {element.exitFullscreen();}  //Chrome
+    else if (element.mozCancelFullScreen) {element.mozCancelFullScreen();}  //Firefox 
+    else if (element.webkitCancelFullScreen) {element.webkitCancelFullScreen();}  //Opera  webkit浏览器
+
+  }
 </script>
 
 <style type="text/css">  /*设置时钟格式*/
