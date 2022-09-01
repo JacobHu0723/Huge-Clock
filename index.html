@@ -64,6 +64,15 @@ Tools.innerHTML=da
   }
 </script>
 
+<script>  /*PWA*/
+  if (navigator.serviceWorker != null) {
+    navigator.serviceWorker.register('sw.js')
+    .then(function(registration) {
+      console.log('Registered events at scope: ', registration.scope);
+    });
+  }
+</script>
+
 <style type="text/css">  /*设置时钟格式*/
     div {
         font-size:220px; /*字体大小*/
