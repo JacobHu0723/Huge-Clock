@@ -3,7 +3,8 @@
 var cacheList = [
   '/',
   "index.html",
-  "clock.png"
+  "clock.png",
+  "manifest.json"
 ]
 
 self.addEventListener('install', e => {
