@@ -3,7 +3,7 @@
   "short_name": "Clock",
   "display": "fullscreen",
   "start_url": "/Huge-Clock/",
-  "theme_color": "#dee1e6",
+  "theme_color": "#ffffff",
   "background_color": "#ffffff",
   "icons": [
     {
