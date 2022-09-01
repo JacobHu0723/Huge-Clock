@@ -7,7 +7,7 @@
   "background_color": "#ffffff",
   "icons": [
     {
-      "src": "files/clock.png",
+      "src": "clock.png",
       "sizes": "500x500",
       "type": "image/png"
     }

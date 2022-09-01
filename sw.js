@@ -1,11 +1,11 @@
-﻿var cacheStorageKey = 'minimal-pwa-9'
+﻿var cacheStorageKey = 'minimal-pwa-10'
 
 var cacheList = [
-  '../',
-  "../index.html",
-  "../files/",
-  "../manifest.json",
-  "../js/",
+  '/',
+  "index.html",
+  "clock.png","rain.mp3",
+  "manifest.json",
+  "audio.js","volume.js",
 ]
 
 self.addEventListener('install', e => {
