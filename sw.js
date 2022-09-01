@@ -2,10 +2,10 @@
 
 var cacheList = [
   '/',
-  "/Huge-Clock/"
+  "/Huge-Clock/",
   "index.html",
   "files/",
-  "manifest.json"
+  "manifest.json",
   "js/"
 ]
 
