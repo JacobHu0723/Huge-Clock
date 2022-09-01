@@ -1,14 +1,14 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 
 <head>
 
 <meta charset="utf-8">
-<link href="clock.png" rel="shortcut icon" />
+<link href="files/clock.png" rel="shortcut icon" />
 <link rel="manifest" href="manifest.json" />
 <title>Clock</title>
 
-<script type="text/javascript">
+<script type="text/javascript">  /*时钟*/
 
 window.onload=function()
 
@@ -109,8 +109,14 @@ Tools.innerHTML=da
 
 <body ondblclick="Fullscreen(document)">
 
-<div id="Main"></div>
+<audio id="music" preload="auto" loop="loop" src="files/rain.mp3" ></audio>
+
+<div id="Main" onclick="musiccc()"></div>
 
 </body>
+
+<script type="text/javascript" src="js/audio.js"></script>
+
+<script type="text/javascript" src="js/volume.js"></script>
 
 </html>
