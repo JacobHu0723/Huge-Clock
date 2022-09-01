@@ -4,7 +4,7 @@
 <head>
 
 <meta charset="utf-8">
-<link href="clock.png" rel="shortcut icon" />
+<link href="files/clock.png" rel="shortcut icon" />
 <link rel="manifest" href="manifest.json" />
 <title>Clock</title>
 
@@ -77,6 +77,7 @@ Tools.innerHTML=da
 <style type="text/css">  /*设置时钟格式*/
     div {
         font-size:220px; /*字体大小*/
+        color:#dee1e6;  /*字体颜色*/
         font-weight:bold;  /*粗体*/
         text-align:center;   /*水平居中*/
 	      position:fixed;
@@ -107,16 +108,16 @@ Tools.innerHTML=da
 
 </head>
 
-<body ondblclick="Fullscreen(document)">
+<body ondblclick="Fullscreen(document)" style="background-color:black">
 
-<audio id="music" preload="auto" loop="loop" src="rain.mp3" ></audio>
+<audio id="music" preload="auto" loop="loop" src="files/meditation.mp3" ></audio>
 
 <div id="Main" onclick="musiccc()"></div>
 
 </body>
 
-<script type="text/javascript" src="audio.js"></script>
+<script type="text/javascript" src="js/audio.js"></script>
 
-<script type="text/javascript" src="volume.js"></script>
+<script type="text/javascript" src="js/volume.js"></script>
 
 </html>
