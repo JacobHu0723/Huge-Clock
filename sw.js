@@ -1,4 +1,4 @@
-﻿var cacheStorageKey = 'minimal-pwa-1'
+﻿var cacheStorageKey = 'minimal-pwa-2'
 
 var cacheList = [
   '/',
@@ -37,3 +37,12 @@ self.addEventListener('activate', function(e) {
     })
   )
 })
+
+self.addEventListener('fetch', event => {
+  console.log('[Service Worker] Fetching something ....', event);
+  // This fixes a weird bug in Chrome when you open the Developer Tools
+  if (event.request.cache === 'only-if-cached' && event.request.mode !== 'same-origin') {
+      return;
+  }
+  event.respondWith(fetch(event.request));
+});
