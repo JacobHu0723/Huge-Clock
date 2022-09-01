@@ -65,9 +65,9 @@ Tools.innerHTML=da
   }
 </script>
 
-<script>  /*PWA*/
+<script type="text/javascript">  /*PWA*/
   if (navigator.serviceWorker != null) {
-    navigator.serviceWorker.register('sw.js')
+    navigator.serviceWorker.register('/Huge-Clock/sw.js')
     .then(function(registration) {
       console.log('Registered events at scope: ', registration.scope);
     });
