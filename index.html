@@ -6,6 +6,7 @@
 <meta charset="utf-8">
 <link href="files/clock.png" rel="shortcut icon" />
 <link rel="manifest" href="manifest.json" />
+
 <title>Clock</title>
 
 <script type="text/javascript">  /*时钟*/
@@ -108,16 +109,12 @@ Tools.innerHTML=da
 
 </head>
 
-<body ondblclick="Fullscreen(document)" style="background-color:black">
-
-<audio id="music" preload="auto" loop="loop" src="files/Wait on the Lord.mp3" ></audio>
+<body ondblclick="Fullscreen(document)" onkeydown="getKeyCode()" style="background-color:black">
 
 <div id="Main" onclick="musiccc()"></div>
 
 </body>
 
 <script type="text/javascript" src="js/audio.js"></script>
-
-<script type="text/javascript" src="js/volume.js"></script>
 
 </html>
