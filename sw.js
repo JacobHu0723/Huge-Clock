@@ -1,12 +1,12 @@
-﻿var cacheStorageKey = 'minimal-pwa-15'
+﻿var cacheStorageKey = 'minimal-pwa-16'
 
 var cacheList = [
-  '/',
-  "/Huge-Clock/",
-  "/Huge-Clock/index.html",
-  "/Huge-Clock/manifest.json",
-  "/Huge-Clock/js/",
-  "/Huge-Clock/files/"
+
+  "https://jacobhu0723.github.io/Huge-Clock/",
+  "https://jacobhu0723.github.io/Huge-Clock/index.html",
+  "https://jacobhu0723.github.io/Huge-Clock/manifest.json",
+  "https://jacobhu0723.github.io/Huge-Clock/js/",
+  "https://jacobhu0723.github.io/Huge-Clock/files/"
 ]
 
 self.addEventListener('install', e => {
