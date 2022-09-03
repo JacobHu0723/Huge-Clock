@@ -40,7 +40,7 @@ if (e.keyCode=="37"  && n>=0) {
   if (n>0) n = n - 1;
   else n=3;  //添加歌曲需要改这里！
   music.pause();
-  music = new Audio(list[n]);
+  music = new Audio(list[n]);music.loop = true;
   music.volume = vol;
   if (tem == true) music.play();
 };
@@ -49,7 +49,7 @@ if (e.keyCode=="39" && n<=3) {  //添加歌曲需要改这里！
   if (n<3) n = n + 1;  //添加歌曲需要改这里！
   else n=0;
   music.pause();
-  music = new Audio(list[n]);
+  music = new Audio(list[n]);music.loop = true;
   music.volume = vol;
   if (tem == true) music.play();
 };
