@@ -2,7 +2,7 @@
 var list=new Array("files/rain.mp3","files/meditation.mp3","files/Wait on the Lord.mp3","files/YanDaiXieJie.mp3");  //添加歌曲需要改这里！
 var n=0;
 
-var music = new Audio("files/rain.mp3");
+var music = new Audio("files/rain.mp3");music.loop = true;
 var tem = false  //设置一个变量，用来控制音乐是否在播放。
 
 //var x = document.getElementById("music");  //把上下箭头控制音量顺便做这了

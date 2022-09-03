@@ -3,6 +3,7 @@
   "short_name": "Clock",
   "display": "fullscreen",
   "start_url": "https://jacobhu0723.github.io/Huge-Clock/",
+  "id":"/Huge-Clock/",
   "theme_color": "#000000",
   "background_color": "#000000",
   "icons": [
