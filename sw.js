@@ -1,4 +1,4 @@
-﻿var cacheStorageKey = 'minimal-pwa-17'
+﻿var cacheStorageKey = 'minimal-pwa-18'
 
 var cacheList = [
   '/',

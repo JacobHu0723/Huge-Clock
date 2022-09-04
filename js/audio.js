@@ -9,13 +9,13 @@ var tem = false  //设置一个变量，用来控制音乐是否在播放。
 var vol = music.volume;
 function upvolume() {
 	vol = music.volume;
-	music.volume = vol + 0.1;
+	music.volume = vol + 0.05;
 	vol = music.volume;
 	return vol;
 };
 function downvolume() {
 	vol = music.volume;
-	music.volume = vol - 0.1;
+	music.volume = vol - 0.05;
 	vol = music.volume;
 	return vol;
 };
