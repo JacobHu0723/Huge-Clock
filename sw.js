@@ -1,4 +1,4 @@
-﻿var cacheStorageKey = 'minimal-pwa-20'
+﻿var cacheStorageKey = 'minimal-pwa-21'
 
 var cacheList = [
   '/',
@@ -24,7 +24,7 @@ self.addEventListener('install', e => {
 
 self.addEventListener('activate', function(e) {
   e.waitUntil(
-    Promise.all(
+    Promise.all([
       caches.keys().then(cacheNames => {
         return cacheNames.map(name => {
           if (name !== cacheStorageKey) {
@@ -32,7 +32,7 @@ self.addEventListener('activate', function(e) {
           }
         })
       })
-    ).then(() => {
+    ]).then(() => {
       return self.clients.claim()
     })
   )
