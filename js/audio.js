@@ -75,6 +75,10 @@ if (e.keyCode=="40") {  //下箭头减小音量也做这了
 if (e.keyCode=="13") {  //回车全屏做这了
 Fullscreen(document)
 };
+
+if (e.keyCode == "122") {  //F11全屏
+	event.preventDefault(); //阻止浏览器的默认行为
+	Fullscreen(document);} //调用H5的api
 }
 
 var scrollFunc = function(e) {
