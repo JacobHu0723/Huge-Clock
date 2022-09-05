@@ -71,6 +71,10 @@ if (e.keyCode=="38") {  //上箭头增加音量也做这了
 if (e.keyCode=="40") {  //下箭头减小音量也做这了
   downvolume();
 };
+
+if (e.keyCode=="13") {  //回车全屏做这了
+Fullscreen(document)
+};
 }
 
 var scrollFunc = function(e) {
