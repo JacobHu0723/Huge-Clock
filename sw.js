@@ -4,6 +4,7 @@ var cacheList = [
   '/',
   "https://jacobhu0723.github.io/Huge-Clock/index.html",
   "https://jacobhu0723.github.io/Huge-Clock/manifest.json",
+  "https://jacobhu0723.github.io/Huge-Clock/js/audio.js",
 ]
 
 self.addEventListener('install', e => {
