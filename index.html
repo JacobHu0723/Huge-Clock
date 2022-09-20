@@ -84,12 +84,10 @@ Tools.innerHTML=da
 
 <style type="text/css">  /*设置时钟格式*/
     div {
-        font-size:220px; /*字体大小*/
         color:#dee1e6;  /*字体颜色*/
         font-weight:bold;  /*粗体*/
         text-align:center;   /*水平居中*/
 	      position:fixed;
-        top:190px;   /*垂直居中*/
 	      left:0;
 	      right:0;
         font-family:"Microsoft YaHei"
@@ -121,7 +119,23 @@ Tools.innerHTML=da
 
 </body>
 
+<script type="text/javascript">   /*字体大小*/
+(function (doc, win) {
+            var divfont=document.getElementById("Main"),
+                resizeEvt = 'orientationchange' in window ? 'orientationchange' : 'resize',
+                recalc = function () {
+                    var bodyclientWidth = document.body.clientWidth,
+                        bodyclientHeight = document.body.clientHeight;
+                    divfont.style.top = (bodyclientHeight/3.5) + 'px';
+                    if (!bodyclientWidth) return;
+                    divfont.style.fontSize = (bodyclientWidth/6) + 'px';
+                };
+            if (!doc.addEventListener) return;
+            win.addEventListener(resizeEvt, recalc, false);
+            doc.addEventListener('DOMContentLoaded', recalc, false);
+        })(document, window);
+</script>
+
 <script type="text/javascript" src="js/audio.js"></script>
-<!--<script type="text/javascript" src="js/fc.js"></script>-->
 
 </html>
