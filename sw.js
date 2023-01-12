@@ -1,4 +1,4 @@
-﻿var cacheStorageKey = 'minimal-pwa-25'
+﻿var cacheStorageKey = 'minimal-pwa-26'
 
 var cacheList = [
   '/',
@@ -7,13 +7,6 @@ var cacheList = [
   "https://jacobhu0723.github.io/Huge-Clock/js/audio.js",
 ]
 
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(cacheStorageKey)
-    .then(cache => cache.addAll(cacheList))
-    .then(() => self.skipWaiting())
-  )
-})
 
 self.addEventListener('install', e => {
   e.waitUntil(

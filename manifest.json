@@ -1,5 +1,8 @@
 ﻿{
   "name": "Clock",
+  "description":"A BIG clock. Remind you of time and focus to study",
+  "version":"1.0.0",
+  "author":"Jacob Hu",
   "short_name": "Clock",
   "display": "fullscreen",
   "start_url": "https://jacobhu0723.github.io/Huge-Clock/",
