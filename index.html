@@ -21,7 +21,9 @@
 
     window.onload = function () {
 
-      window.requestAnimationFrame(getDate)
+      window.requestAnimationFrame(getDate);   // 启动时钟
+
+      noSleep.enable();    // 启用防止屏幕休眠功能
 
     }
 
@@ -119,12 +121,9 @@
     }
   </style>
 
-  <script src="js/NoSleep.min.js"></script> /*阻止屏幕休眠*/
+  <script src="js/NoSleep.min.js"></script> <!--阻止屏幕休眠-->
   <script>
     var noSleep = new NoSleep();
-    window.onload = function () {
-      noSleep.enable();
-    }
   </script>
 
 </head>
