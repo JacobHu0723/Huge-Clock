@@ -1,5 +1,5 @@
 ﻿// 定义版本号和缓存名称
-var cacheStorageKey = 'minimal-pwa-27';
+var cacheStorageKey = 'minimal-pwa-28';
 
 // 定义需要缓存的文件列表
 var cacheList = [
@@ -7,6 +7,7 @@ var cacheList = [
   "https://jacobhu0723.github.io/Huge-Clock/index.html",
   "https://jacobhu0723.github.io/Huge-Clock/manifest.json",
   "https://jacobhu0723.github.io/Huge-Clock/js/audio.js",
+  "https://jacobhu0723.github.io/Huge-Clock/js/NoSleep.min.js",
 ];
 
 // 监听 install 事件，在安装 Service Worker 时缓存文件

@@ -1,139 +1,155 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="zh-cn">
 
 <head>
 
-<meta charset="utf-8">
-<meta name="keywords" content="Clock">
-<meta name="description" content="Huge-Clock_There's only a BIG clock. That will remind you of time and focus to study.">
-<meta name="author" content="Jacob Hu">
-<link href="files/clock.png" rel="shortcut icon" />
-<link rel="manifest" href="manifest.json" />
-<link rel="apple-touch-icon" href="/Huge-Clock/files/clock-apple.png">
-<meta name="theme-color" content="#000000"/>
-<meta name="viewport" content="width=device-width" />
+  <meta charset="utf-8">
+  <meta name="keywords" content="Clock">
+  <meta name="description"
+    content="Huge-Clock_There's only a BIG clock. That will remind you of time and focus to study.">
+  <meta name="author" content="Jacob Hu">
+  <link href="files/clock.png" rel="shortcut icon" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="/Huge-Clock/files/clock-apple.png">
+  <meta name="theme-color" content="#000000" />
+  <meta name="viewport" content="width=device-width" />
 
 
-<title>Clock</title>
+  <title>Clock</title>
 
-<script type="text/javascript">  /*时钟*/
+  <script type="text/javascript">  /*时钟*/
 
-window.onload=function()
+    window.onload = function () {
 
-{
+      window.requestAnimationFrame(getDate)
 
-window.requestAnimationFrame(getDate)
+    }
 
-}
+    function getDate() {
 
-function getDate()
+      window.setTimeout(function () {
 
-{
+        window.requestAnimationFrame(getDate)
 
-window.setTimeout(function(){
+      }, 1000 / 2)
 
-window.requestAnimationFrame(getDate)
+      var d = new Date();
 
-},1000/2)
+      var hour = d.getHours()   //小时
 
-var d=new Date();   
+      var minute = d.getMinutes()  //分钟
 
-var hour=d.getHours()   //小时
+      var second = d.getSeconds()   //秒
 
-var minute=d.getMinutes()  //分钟
+      if (hour < 10) hour = "0" + hour
 
-var second=d.getSeconds()   //秒
+      if (minute < 10) minute = "0" + minute
 
-if(hour<10) hour="0"+hour
+      if (second < 10) second = "0" + second
 
-if(minute<10) minute="0"+minute
+      var Tools = document.getElementById("Main")
 
-if(second<10) second="0"+second
+      var da = hour + " : " + minute + " : " + second
 
-var Tools=document.getElementById("Main")
+      Tools.innerHTML = da
 
-var da=hour+" : "+minute+" : "+second
+    }
 
-Tools.innerHTML=da
+  </script>
 
-}
+  <script type="text/javascript">  /*全屏*/
+    function Fullscreen(element) {
+      if (element.documentElement.requestFullscreen) { element.documentElement.requestFullscreen(); } //Chrome
+      else if (element.documentElement.mozRequestFullScreen) { element.documentElement.mozRequestFullScreen(); }  //Firefox 
+      else if (element.documentElement.webkitRequestFullscreen) { element.documentElement.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT); }  //Opera  webkit浏览器
 
-</script>
+      if (element.exitFullscreen) { element.exitFullscreen(); }  //Chrome
+      else if (element.mozCancelFullScreen) { element.mozCancelFullScreen(); }  //Firefox 
+      else if (element.webkitCancelFullScreen) { element.webkitCancelFullScreen(); }  //Opera  webkit浏览器
 
-<script type="text/javascript">  /*全屏*/
-  function Fullscreen(element) {
-    if(element.documentElement.requestFullscreen) {element.documentElement.requestFullscreen();} //Chrome
-    else if(element.documentElement.mozRequestFullScreen) {element.documentElement.mozRequestFullScreen();}  //Firefox 
-    else if (element.documentElement.webkitRequestFullscreen) {element.documentElement.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);}  //Opera  webkit浏览器
-    
-    if(element.exitFullscreen) {element.exitFullscreen();}  //Chrome
-    else if (element.mozCancelFullScreen) {element.mozCancelFullScreen();}  //Firefox 
-    else if (element.webkitCancelFullScreen) {element.webkitCancelFullScreen();}  //Opera  webkit浏览器
+    }
+  </script>
 
-  }
-</script>
+  <script type="text/javascript">  /*PWA*/
+    if (navigator.serviceWorker != null) {
+      navigator.serviceWorker.register('/Huge-Clock/sw.js')
+        .then(function (registration) {
+          console.log('Registered events at scope: ', registration.scope);
+        });
+    }
+  </script>
 
-<script type="text/javascript">  /*PWA*/
-  if (navigator.serviceWorker != null) {
-    navigator.serviceWorker.register('/Huge-Clock/sw.js')
-    .then(function(registration) {
-      console.log('Registered events at scope: ', registration.scope);
-    });
-  }
-</script>
-
-<style type="text/css">  /*设置时钟格式*/
+  <style type="text/css">
+    /*设置时钟格式*/
     div {
-        color:#dee1e6;  /*字体颜色*/
-        font-weight:bold;  /*粗体*/
-        text-align:center;   /*水平居中*/
-	      position:fixed;
-	      left:0;
-	      right:0;
-        font-family:"Microsoft YaHei"
-        }
-</style>
+      color: #dee1e6;
+      /*字体颜色*/
+      font-weight: bold;
+      /*粗体*/
+      text-align: center;
+      /*水平居中*/
+      position: fixed;
+      left: 0;
+      right: 0;
+      font-family: "Microsoft YaHei"
+    }
+  </style>
 
-<style type="text/css">  /*双击时钟不会选中*/
-  div{
-    -moz-user-select:none;/*火狐*/
-    -webkit-user-select:none;/*webkit浏览器*/
-    -ms-user-select:none;/*IE10*/
-    -khtml-user-select:none;/*早期浏览器*/
-      user-select:none;
-}
-</style>
+  <style type="text/css">
+    /*双击时钟不会选中*/
+    div {
+      -moz-user-select: none;
+      /*火狐*/
+      -webkit-user-select: none;
+      /*webkit浏览器*/
+      -ms-user-select: none;
+      /*IE10*/
+      -khtml-user-select: none;
+      /*早期浏览器*/
+      user-select: none;
+    }
+  </style>
 
-<style type="text/css">  /*页面设置占满*/
-  html,body{
-	height: 100%;
-	margin:0;
-  }
-</style>
+  <style type="text/css">
+    /*页面设置占满*/
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+    }
+  </style>
+
+  <script src="js/NoSleep.min.js"></script> /*阻止屏幕休眠*/
+  <script>
+    var noSleep = new NoSleep();
+    window.onload = function () {
+      noSleep.enable();
+    }
+  </script>
 
 </head>
 
 <body ondblclick="Fullscreen(document)" onkeydown="getKeyCode()" style="background-color:black">
 
-<div id="Main" onclick="musiccc()"></div>
+  <div id="Main" onclick="musiccc()"></div>
 
 </body>
 
 <script type="text/javascript">   /*字体大小*/
-(function (doc, win) {
-            var divfont=document.getElementById("Main"),
-                resizeEvt = 'orientationchange' in window ? 'orientationchange' : 'resize',
-                recalc = function () {
-                    var bodyclientWidth = document.body.clientWidth,
-                        bodyclientHeight = document.body.clientHeight;
-                    divfont.style.top = (bodyclientHeight/3.5) + 'px';
-                    if (!bodyclientWidth) return;
-                    divfont.style.fontSize = (bodyclientWidth/6) + 'px';
-                };
-            if (!doc.addEventListener) return;
-            win.addEventListener(resizeEvt, recalc, false);
-            doc.addEventListener('DOMContentLoaded', recalc, false);
-        })(document, window);
+    (function (doc, win) {
+      var divfont = document.getElementById("Main"),
+        resizeEvt = 'orientationchange' in window ? 'orientationchange' : 'resize',
+        recalc = function () {
+          var bodyclientWidth = document.body.clientWidth,
+            bodyclientHeight = document.body.clientHeight;
+          divfont.style.top = (bodyclientHeight / 3.5) + 'px';
+          if (!bodyclientWidth) return;
+          divfont.style.fontSize = (bodyclientWidth / 6) + 'px';
+        };
+      if (!doc.addEventListener) return;
+      win.addEventListener(resizeEvt, recalc, false);
+      doc.addEventListener('DOMContentLoaded', recalc, false);
+    })(document, window);
 </script>
 
 <script type="text/javascript" src="js/audio.js"></script>
