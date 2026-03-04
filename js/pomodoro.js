@@ -26,6 +26,8 @@ let pomPhaseIdx = 0;
 let pomTimeLeft = POM_PHASES[0].duration;
 let pomRounds   = 0;       // 当前大轮内已完成的专注次数
 let pomInterval = null;
+let pomTargetSessions = 4;   // 预计需要的番茄数（默认 4）
+let pomTotalFocusDone = 0;   // 当前任务已完成的专注次数
 
 // ── DOM 引用 ───────────────────────────────────
 const pomPanelEl  = document.getElementById('pom-panel');
@@ -34,7 +36,11 @@ const pomRingFgEl = document.getElementById('pom-ring-fg');
 const pomTimeEl   = document.getElementById('pom-time');
 const pomDotsEl   = document.getElementById('pom-dots');
 const pomNotifEl  = document.getElementById('pom-notif');
-const pomFabEl    = document.getElementById('pom-fab');
+const pomFabEl       = document.getElementById('pom-fab');
+const pomTaskInputEl = document.getElementById('pom-task-input');
+const pomSessDecEl   = document.getElementById('pom-sess-dec');
+const pomSessIncEl   = document.getElementById('pom-sess-inc');
+const pomSessCountEl = document.getElementById('pom-sess-count');
 
 // ── SVG 圆环初始化 ─────────────────────────────
 const POM_RING_R    = 50;
@@ -62,22 +68,29 @@ function pomRender() {
   pomRingFgEl.style.strokeDashoffset = (POM_RING_CIRC * (1 - remaining)).toFixed(3);
   pomRingFgEl.style.stroke = phase.color;
 
-  // 会话圆点（追踪专注轮数）
+  // 会话圆点（任务进度：已完成 / 预计番茄数）
   const fc = POM_PHASES[0].color;
+  const maxDots = Math.min(pomTargetSessions, 8);
   let dotsHTML = '';
-  for (let i = 0; i < POM_MAX_ROUNDS; i++) {
-    if (i < pomRounds) {
+  for (let i = 0; i < maxDots; i++) {
+    if (i < pomTotalFocusDone) {
       // 已完成
       dotsHTML += `<span class="pom-dot done" style="background:${fc}99;border-color:${fc}cc"></span>`;
-    } else if (i === pomRounds && pomPhaseIdx === 0) {
-      // 当前进行中
+    } else if (i === pomTotalFocusDone && pomPhaseIdx === 0) {
+      // 当前专注进行中
       dotsHTML += `<span class="pom-dot active" style="background:${fc};border-color:${fc}"></span>`;
     } else {
       // 待完成
       dotsHTML += '<span class="pom-dot"></span>';
     }
   }
+  if (pomTargetSessions > 8) {
+    dotsHTML += `<span class="pom-dot-more">+${pomTargetSessions - 8}</span>`;
+  }
   pomDotsEl.innerHTML = dotsHTML;
+
+  // 同步步进器显示
+  pomSessCountEl.textContent = `${pomTargetSessions} 个番茄`;
 }
 
 // ── 通知横幅 ──────────────────────────────────
@@ -108,6 +121,7 @@ function pomStartTimer() {
   pomRunning = true;
   pomPanelEl.classList.add('running');
   pomFabEl.classList.add('running');
+  pomTaskInputEl.setAttribute('readonly', '');
   pomInterval = setInterval(pomTick, 1000);
 }
 
@@ -116,33 +130,57 @@ function pomPauseTimer() {
   pomRunning = false;
   pomPanelEl.classList.remove('running');
   pomFabEl.classList.remove('running');
+  pomTaskInputEl.removeAttribute('readonly');
 }
 
 // ── 阶段切换 ──────────────────────────────────
 function pomOnPhaseEnd() {
   if (pomPhaseIdx === 0) {
     // 专注阶段结束
+    pomTotalFocusDone++;
     pomRounds++;
+    const taskName = pomTaskInputEl.value.trim();
+    const taskDone = pomTotalFocusDone >= pomTargetSessions;
+
+    // 确定下一个休息阶段
     if (pomRounds >= POM_MAX_ROUNDS) {
-      // 进入长休息
       pomRounds   = 0;
       pomPhaseIdx = 2;
       pomTimeLeft = POM_PHASES[2].duration;
-      pomNotify('🎉 完成 4 轮专注！开始长休息');
     } else {
-      // 进入短休息
       pomPhaseIdx = 1;
       pomTimeLeft = POM_PHASES[1].duration;
-      pomNotify('✅ 专注结束，开始短休息');
     }
+
+    if (taskDone) {
+      const nameStr = taskName ? `"${taskName}" ` : '';
+      pomNotify(`🎉 ${nameStr}完成！共专注 ${pomTotalFocusDone} 个🍅`);
+    } else {
+      const breakLabel = pomPhaseIdx === 2 ? '长休息' : '短休息';
+      pomNotify(`✅ 专注结束，开始${breakLabel}（${pomTotalFocusDone}/${pomTargetSessions}）`);
+    }
+    pomRender();
+    pomStartTimer();
+
   } else {
-    // 休息结束 → 回到专注
+    // 休息结束
     pomPhaseIdx = 0;
     pomTimeLeft = POM_PHASES[0].duration;
-    pomNotify('⏱ 休息结束，开始新的专注！');
+
+    if (pomTotalFocusDone >= pomTargetSessions) {
+      // 任务已达标：重置进度，暂停等待用户开始下一个任务
+      pomTotalFocusDone = 0;
+      pomRounds         = 0;
+      pomRender();
+      pomPauseTimer();           // 同时解锁输入框
+      pomTaskInputEl.value = '';
+      pomNotify('✨ 开始下一个任务吧！');
+    } else {
+      pomNotify('⏱ 休息结束，开始新的专注！');
+      pomRender();
+      pomStartTimer();
+    }
   }
-  pomRender();
-  pomStartTimer(); // 自动进入下一阶段
 }
 
 // ── 面板显示 / 隐藏 ────────────────────────────
@@ -160,11 +198,10 @@ function pomHide() {
 
 // ── 键盘接口（供 audio.js 调用）──────────────────
 
-// P：面板隐藏 → 显示并开始；运行中 → 暂停；暂停中 → 恢复
+// P：面板隐藏 → 仅显示（可先填写任务名和番茄数，再按 P 或点击开始）；运行中 → 暂停；暂停中 → 开始
 function pomKeyP() {
   if (!pomVisible) {
     pomShow();
-    pomStartTimer();
   } else if (pomRunning) {
     pomPauseTimer();
   } else {
@@ -205,6 +242,24 @@ pomPanelEl.addEventListener('click', e => {
 
 // 阻止面板双击触发全屏
 pomPanelEl.addEventListener('dblclick', e => e.stopPropagation());
+
+// 任务输入框：阻止冒泡，防止触发面板的开始/暂停
+pomTaskInputEl.addEventListener('click',    e => e.stopPropagation());
+pomTaskInputEl.addEventListener('dblclick', e => e.stopPropagation());
+// Enter 键确认后失焦
+pomTaskInputEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); pomTaskInputEl.blur(); }
+});
+
+// 步进器：减少 / 增加目标番茄数（范围 1 ~ 12）
+pomSessDecEl.addEventListener('click', e => {
+  e.stopPropagation();
+  if (pomTargetSessions > 1) { pomTargetSessions--; pomRender(); }
+});
+pomSessIncEl.addEventListener('click', e => {
+  e.stopPropagation();
+  if (pomTargetSessions < 12) { pomTargetSessions++; pomRender(); }
+});
 
 // ── 初始化渲染 ────────────────────────────────
 pomRender();

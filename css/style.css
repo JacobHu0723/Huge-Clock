@@ -275,3 +275,111 @@ body {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+/* ── 任务名称输入框 ── */
+#pom-task-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  color: rgba(218, 226, 240, 0.92);
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 12px;
+  text-align: center;
+  outline: none;
+  transition:
+    background   0.25s ease,
+    border-color 0.25s ease;
+}
+#pom-task-input::placeholder {
+  color: rgba(175, 185, 205, 0.38);
+}
+#pom-task-input:focus:not([readonly]) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 112, 67, 0.55);
+}
+/* 运行时变为只读标签样式 */
+#pom-task-input[readonly] {
+  background: transparent;
+  border-color: transparent;
+  font-weight: 700;
+  font-size: 14px;
+  color: rgba(218, 226, 240, 0.88);
+  cursor: default;
+  pointer-events: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 运行时若无任务名则隐藏输入框（不占位）*/
+#pom-panel.running #pom-task-input:placeholder-shown {
+  display: none;
+}
+
+/* ── 目标番茄数步进器 ── */
+#pom-session-stepper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-height: 32px;
+  overflow: hidden;
+  transition:
+    opacity    0.25s ease,
+    max-height 0.35s ease;
+}
+#pom-panel.running #pom-session-stepper {
+  opacity: 0;
+  max-height: 0;
+  pointer-events: none;
+}
+#pom-sess-dec,
+#pom-sess-inc {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(200, 210, 228, 0.80);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background 0.2s ease,
+    transform  0.15s ease;
+}
+#pom-sess-dec:hover,
+#pom-sess-inc:hover {
+  background: rgba(255, 255, 255, 0.16);
+  transform: scale(1.12);
+}
+#pom-sess-dec:active,
+#pom-sess-inc:active {
+  transform: scale(0.92);
+}
+#pom-sess-count {
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(175, 185, 205, 0.65);
+  min-width: 56px;
+  text-align: center;
+  letter-spacing: 0.03em;
+}
+
+/* ── 溢出圆点（>8 个番茄时显示 +N）── */
+.pom-dot-more {
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(175, 185, 205, 0.55);
+  align-self: center;
+}

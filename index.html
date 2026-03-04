@@ -32,6 +32,9 @@
 
   <!-- 番茄钟主面板 -->
   <div id="pom-panel" role="dialog" aria-label="番茄钟计时器">
+    <!-- 任务名称输入框（运行时变为只读标签） -->
+    <input id="pom-task-input" type="text" placeholder="今天专注什么？" maxlength="20"
+           autocomplete="off" spellcheck="false" aria-label="任务名称">
     <div id="pom-label">专注</div>
     <!-- 进度圆环 + 倒计时叠层 -->
     <div id="pom-ring-wrap">
@@ -41,8 +44,14 @@
       </svg>
       <div id="pom-time">25 : 00</div>
     </div>
-    <!-- 专注轮次圆点 -->
+    <!-- 任务进度圆点 -->
     <div id="pom-dots"></div>
+    <!-- 目标番茄数步进器 -->
+    <div id="pom-session-stepper">
+      <button id="pom-sess-dec" aria-label="减少番茄数">−</button>
+      <span id="pom-sess-count">4 个番茄</span>
+      <button id="pom-sess-inc" aria-label="增加番茄数">＋</button>
+    </div>
     <!-- 操作提示 -->
     <div id="pom-keys">[P] 开始/暂停 &nbsp;·&nbsp; [R] 重置 &nbsp;·&nbsp; [Esc] 关闭</div>
   </div>
