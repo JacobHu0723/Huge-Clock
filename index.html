@@ -57,8 +57,18 @@
         </div>
       </div>
     </div>
-    <!-- 操作提示 -->
-    <div id="pom-keys">[P] 开始/暂停 &nbsp;·&nbsp; [R] 重置 &nbsp;·&nbsp; [Esc] 关闭</div>
+    <!-- 操作按钮（data-key 用于 CSS tooltip 显示快捷键）-->
+    <div id="pom-actions">
+      <button id="pom-btn-toggle" class="pom-action-btn" data-key="P" aria-label="开始/暂停">
+        <span id="pom-toggle-icon">▶</span>
+      </button>
+      <button id="pom-btn-reset" class="pom-action-btn" data-key="R" aria-label="重置">
+        <span>↺</span>
+      </button>
+      <button id="pom-btn-close" class="pom-action-btn" data-key="Esc" aria-label="关闭">
+        <span>✕</span>
+      </button>
+    </div>
   </div>
 
   <!-- 番茄钟阶段切换通知 -->

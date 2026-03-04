@@ -250,15 +250,98 @@ body {
   50%       { transform: scale(0.75); opacity: 0.45; }
 }
 
-/* ── 键盘提示 ── */
-#pom-keys {
+/* ── 操作按钮栏 ── */
+#pom-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 2px;
+}
+.pom-action-btn {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(200, 210, 228, 0.82);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition:
+    background   0.2s ease,
+    border-color 0.2s ease,
+    transform    0.15s ease,
+    color        0.2s ease;
+}
+.pom-action-btn:hover {
+  background: rgba(255, 255, 255, 0.11);
+  border-color: rgba(255, 255, 255, 0.20);
+  transform: translateY(-2px);
+}
+.pom-action-btn:active {
+  transform: scale(0.88);
+  transition-duration: 0.08s;
+}
+/* 播放图标单独缩小（暂停/重置/关闭大小刚好） */
+#pom-toggle-icon {
+  font-size: 11px;
+}
+/* 暂停图标：放大并加粗描边，与其他图标视觉等重 */
+#pom-panel.running #pom-toggle-icon {
+  font-size: 14px;
+  filter: drop-shadow(0 0 0.4px currentColor);
+}
+
+/* hover 时从 data-key 属性读取快捷键，气泡浮于按钮上方 */
+/* body.is-touch 时完全不显示（触摸 hover 残留问题）*/
+body.is-touch .pom-action-btn::after {
+  display: none;
+}
+.pom-action-btn::after {
+  content: attr(data-key);
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%) translateY(5px);
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(20, 24, 32, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.10);
   font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
   font-size: 10px;
-  color: rgba(175, 185, 205, 0.35);
-  letter-spacing: 0.02em;
-  text-align: center;
-  line-height: 1.5;
-  margin-top: 2px;
+  font-weight: 600;
+  color: rgba(175, 185, 210, 0.85);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity   0.18s ease,
+    transform 0.18s ease;
+}
+.pom-action-btn:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+/* 开始/暂停按钮运行时橙色高亮 */
+#pom-panel.running #pom-btn-toggle {
+  border-color: rgba(255, 112, 67, 0.40);
+  background: rgba(255, 112, 67, 0.10);
+  color: rgba(255, 150, 100, 0.95);
+}
+/* 关闭按钮 hover 时微红 */
+#pom-btn-close:hover {
+  border-color: rgba(255, 80, 80, 0.28);
+  background: rgba(255, 80, 80, 0.08);
+  color: rgba(255, 130, 130, 0.90);
 }
 
 /* ── 阶段切换通知横幅 ── */

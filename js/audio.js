@@ -112,6 +112,10 @@ let touchDir    = null; // null | 'vertical' | 'horizontal'
 let touchOnUI   = false; // 是否触摸在番茄钟面板 / FAB 上
 
 document.addEventListener('touchstart', e => {
+  // 首次触摸：标记为触摸设备，禁用快捷键 tooltip
+  if (!document.body.classList.contains('is-touch')) {
+    document.body.classList.add('is-touch');
+  }
   touchOnUI = !!e.target.closest('#pom-panel, #pom-fab');
   if (touchOnUI) { touchDir = null; return; }
   touchStartX = e.changedTouches[0].clientX;

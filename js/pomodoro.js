@@ -40,7 +40,8 @@ const pomFabEl       = document.getElementById('pom-fab');
 const pomTaskInputEl = document.getElementById('pom-task-input');
 const pomSessDecEl   = document.getElementById('pom-sess-dec');
 const pomSessIncEl   = document.getElementById('pom-sess-inc');
-const pomSessCountEl = document.getElementById('pom-sess-count');
+const pomSessCountEl  = document.getElementById('pom-sess-count');
+const pomToggleIconEl = document.getElementById('pom-toggle-icon');
 
 // ── SVG 圆环初始化 ─────────────────────────────
 const POM_RING_R    = 50;
@@ -121,6 +122,7 @@ function pomStartTimer() {
   pomPanelEl.classList.add('running');
   pomFabEl.classList.add('running');
   pomTaskInputEl.setAttribute('readonly', '');
+  pomToggleIconEl.textContent = '⏸';
   pomInterval = setInterval(pomTick, 1000);
 }
 
@@ -130,6 +132,7 @@ function pomPauseTimer() {
   pomPanelEl.classList.remove('running');
   pomFabEl.classList.remove('running');
   pomTaskInputEl.removeAttribute('readonly');
+  pomToggleIconEl.textContent = '▶';
 }
 
 // ── 阶段切换 ──────────────────────────────────
@@ -258,6 +261,20 @@ pomSessDecEl.addEventListener('click', e => {
 pomSessIncEl.addEventListener('click', e => {
   e.stopPropagation();
   if (pomTargetSessions < 12) { pomTargetSessions++; pomRender(); }
+});
+
+// 操作按钮（鼠标 & 触摸通用）
+document.getElementById('pom-btn-toggle').addEventListener('click', e => {
+  e.stopPropagation();
+  if (pomRunning) pomPauseTimer(); else pomStartTimer();
+});
+document.getElementById('pom-btn-reset').addEventListener('click', e => {
+  e.stopPropagation();
+  pomKeyR();
+});
+document.getElementById('pom-btn-close').addEventListener('click', e => {
+  e.stopPropagation();
+  pomKeyEsc();
 });
 
 // ── 初始化渲染 ────────────────────────────────
