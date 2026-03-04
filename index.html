@@ -93,7 +93,9 @@
       position: fixed;
       left: 0;
       right: 0;
-      font-family: "Microsoft YaHei"
+      font-family: "Microsoft YaHei";
+      font-variant-numeric: tabular-nums;  /*等宽数字，防止数字宽度不同导致位移*/
+      font-feature-settings: "tnum";       /*兼容写法*/
     }
   </style>
 
