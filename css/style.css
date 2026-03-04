@@ -397,9 +397,16 @@ body.is-touch .pom-action-btn::after {
   padding: 7px 12px;
   text-align: center;
   outline: none;
+  /* max-height / overflow 用于无任务名时的折叠动画 */
+  max-height: 40px;
+  overflow: hidden;
   transition:
-    background   0.25s ease,
-    border-color 0.25s ease;
+    background    0.25s ease,
+    border-color  0.25s ease,
+    max-height    0.35s ease,
+    opacity       0.3s  ease,
+    padding-top   0.35s ease,
+    padding-bottom 0.35s ease;
 }
 #pom-task-input::placeholder {
   color: rgba(175, 185, 205, 0.38);
@@ -421,9 +428,13 @@ body.is-touch .pom-action-btn::after {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* 运行时若无任务名则隐藏输入框（不占位）*/
+/* 运行时若无任务名则平滑折叠输入框（不可用 display:none，无法过渡）*/
 #pom-panel.running #pom-task-input:placeholder-shown {
-  display: none;
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  pointer-events: none;
 }
 
 /* ── 目标番茄数步进器 ── */
