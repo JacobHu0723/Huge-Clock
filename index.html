@@ -27,8 +27,32 @@
     <span id="volume-text">80%</span>
   </div>
 
+  <!-- 番茄钟悬浮按钮 -->
+  <div id="pom-fab" role="button" aria-label="番茄钟 [P]" title="番茄钟 [P]">🍅</div>
+
+  <!-- 番茄钟主面板 -->
+  <div id="pom-panel" role="dialog" aria-label="番茄钟计时器">
+    <div id="pom-label">专注</div>
+    <!-- 进度圆环 + 倒计时叠层 -->
+    <div id="pom-ring-wrap">
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle id="pom-ring-bg" cx="60" cy="60" r="50"/>
+        <circle id="pom-ring-fg" cx="60" cy="60" r="50"/>
+      </svg>
+      <div id="pom-time">25 : 00</div>
+    </div>
+    <!-- 专注轮次圆点 -->
+    <div id="pom-dots"></div>
+    <!-- 操作提示 -->
+    <div id="pom-keys">[P] 开始/暂停 &nbsp;·&nbsp; [R] 重置 &nbsp;·&nbsp; [Esc] 关闭</div>
+  </div>
+
+  <!-- 番茄钟阶段切换通知 -->
+  <div id="pom-notif" aria-live="polite"></div>
+
   <!-- 脚本置于 body 末尾：DOM 已就绪，无需等待 DOMContentLoaded -->
   <script src="js/clock.js"></script>
+  <script src="js/pomodoro.js"></script>
   <script src="js/audio.js"></script>
 </body>
 

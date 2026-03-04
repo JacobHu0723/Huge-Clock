@@ -75,3 +75,203 @@ body {
   letter-spacing: 0.02em;
   color: rgba(180, 185, 195, 0.85);
 }
+
+/* ══════════════════════════════════════════════
+   番茄钟
+   ══════════════════════════════════════════════ */
+
+/* ── 悬浮按钮（右下角 🍅）── */
+#pom-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 28px;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  opacity: 0.2;
+  z-index: 8500;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    opacity   0.3s ease,
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#pom-fab:hover {
+  opacity: 0.72;
+  transform: scale(1.25);
+}
+#pom-fab.running {
+  opacity: 0.55;
+  animation: pom-fab-glow 2.4s ease-in-out infinite;
+}
+@keyframes pom-fab-glow {
+  0%, 100% { transform: scale(1);    opacity: 0.55; }
+  50%       { transform: scale(1.1); opacity: 0.85; }
+}
+
+/* ── 主面板 ── */
+#pom-panel {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%) translateY(28px);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 32px 16px;
+  width: 200px;
+  box-sizing: border-box;
+  border-radius: 28px;
+
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(32px) saturate(200%) brightness(1.08);
+  -webkit-backdrop-filter: blur(32px) saturate(200%) brightness(1.08);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.55),
+    inset 0  1.5px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -1px   0 rgba(0, 0, 0, 0.15);
+
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+  cursor: pointer;
+  z-index: 9000;
+
+  transition:
+    opacity   0.35s ease,
+    transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#pom-panel.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── 阶段标签 ── */
+#pom-label {
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: color 0.45s ease;
+}
+
+/* ── 圆环容器（SVG + 时间叠层）── */
+#pom-ring-wrap {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
+}
+#pom-ring-wrap svg {
+  width: 120px;
+  height: 120px;
+  display: block;
+}
+#pom-ring-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.07);
+  stroke-width: 8;
+}
+#pom-ring-fg {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: 60px 60px;
+  transition:
+    stroke-dashoffset 0.9s cubic-bezier(0.4, 0, 0.2, 1),
+    stroke            0.45s ease;
+}
+
+/* ── 倒计时（叠于圆环中心）── */
+#pom-time {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  color: rgba(218, 226, 238, 0.95);
+  letter-spacing: 0.05em;
+  pointer-events: none;
+}
+
+/* ── 会话圆点 ── */
+#pom-dots {
+  display: flex;
+  gap: 8px;
+}
+.pom-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1.5px solid rgba(255, 255, 255, 0.20);
+  transition: background 0.35s ease, border-color 0.35s ease;
+}
+.pom-dot.active {
+  animation: pom-dot-pulse 1.6s ease-in-out infinite;
+}
+@keyframes pom-dot-pulse {
+  0%, 100% { transform: scale(1);    opacity: 1;    }
+  50%       { transform: scale(0.75); opacity: 0.45; }
+}
+
+/* ── 键盘提示 ── */
+#pom-keys {
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+  font-size: 10px;
+  color: rgba(175, 185, 205, 0.35);
+  letter-spacing: 0.02em;
+  text-align: center;
+  line-height: 1.5;
+  margin-top: 2px;
+}
+
+/* ── 阶段切换通知横幅 ── */
+#pom-notif {
+  position: fixed;
+  top: 160px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-16px);
+
+  padding: 11px 22px;
+  border-radius: 50px;
+
+  background: rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(28px) saturate(200%) brightness(1.1);
+  -webkit-backdrop-filter: blur(28px) saturate(200%) brightness(1.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.42),
+    inset 0  1.5px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px   0 rgba(0, 0, 0, 0.12);
+
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(218, 226, 238, 0.92);
+  white-space: nowrap;
+
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+  z-index: 9997;
+
+  transition:
+    opacity   0.28s ease,
+    transform 0.40s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#pom-notif.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}

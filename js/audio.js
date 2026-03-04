@@ -76,6 +76,11 @@ function handleKeyDown(e) {
     case ' ':          e.preventDefault(); togglePlay();       break;
     case 'Enter':      toggleFullscreen();                     break;
     case 'F11':        e.preventDefault(); toggleFullscreen(); break;
+    case 'p':
+    case 'P':          if (window._pomKeyP)   window._pomKeyP();   break;
+    case 'r':
+    case 'R':          if (window._pomKeyR)   window._pomKeyR();   break;
+    case 'Escape':     if (window._pomKeyEsc) window._pomKeyEsc(); break;
   }
 }
 
@@ -104,8 +109,11 @@ let touchStartX = 0;
 let touchStartY = 0;
 let lastTouchY  = 0;
 let touchDir    = null; // null | 'vertical' | 'horizontal'
+let touchOnUI   = false; // 是否触摸在番茄钟面板 / FAB 上
 
 document.addEventListener('touchstart', e => {
+  touchOnUI = !!e.target.closest('#pom-panel, #pom-fab');
+  if (touchOnUI) { touchDir = null; return; }
   touchStartX = e.changedTouches[0].clientX;
   touchStartY = e.changedTouches[0].clientY;
   lastTouchY  = touchStartY;
@@ -115,6 +123,7 @@ document.addEventListener('touchstart', e => {
 // 必须为非 passive，才能在竖向滑动时调用 preventDefault()
 // 阻止移动端浏览器的"下拉刷新"默认行为
 document.addEventListener('touchmove', e => {
+  if (touchOnUI) return;
   const touch = e.changedTouches[0];
   const dx = touch.clientX - touchStartX;
   const dy = touch.clientY - touchStartY;
@@ -134,6 +143,7 @@ document.addEventListener('touchmove', e => {
 }, { passive: false });
 
 document.addEventListener('touchend', e => {
+  if (touchOnUI) { touchDir = null; return; }
   const touch = e.changedTouches[0];
   const dx = touch.clientX - touchStartX;
 
