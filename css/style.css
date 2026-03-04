@@ -23,6 +23,9 @@ body {
   /* 禁止双击选中文字 */
   user-select: none;
 
+  /* 屏蔽触摸点击高亮 */
+  -webkit-tap-highlight-color: transparent;
+
   cursor: pointer;
 }
 
