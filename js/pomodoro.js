@@ -57,10 +57,9 @@ function pomRender() {
   pomLabelEl.textContent = phase.label;
   pomLabelEl.style.color = phase.color;
 
-  // 倒计时文字
-  const m = String(Math.floor(pomTimeLeft / 60)).padStart(2, '0');
-  const s = String(pomTimeLeft % 60).padStart(2, '0');
-  pomTimeEl.textContent = `${m} : ${s}`;
+  // 阶段图标（严格番茄工作法：不显示剩余时间，仅用图标提示当前阶段）
+  const PHASE_ICONS = ['🍅', '☕', '🌿'];
+  pomTimeEl.textContent = PHASE_ICONS[pomPhaseIdx];
 
   // 圆环：剩余时间越少，缺口越大（顺时针消耗）
   // remaining 从 1 降至 0 → dashoffset 从 0 升至 CIRC（圆弧从满到空）
@@ -90,7 +89,7 @@ function pomRender() {
   pomDotsEl.innerHTML = dotsHTML;
 
   // 同步步进器显示
-  pomSessCountEl.textContent = `${pomTargetSessions} 个番茄`;
+  pomSessCountEl.textContent = `×${pomTargetSessions}`;
 }
 
 // ── 通知横幅 ──────────────────────────────────

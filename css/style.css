@@ -109,21 +109,22 @@ body {
   50%       { transform: scale(1.1); opacity: 0.85; }
 }
 
-/* ── 主面板 ── */
+/* ── 主面板（底部居中，左右双栏布局）── */
 #pom-panel {
   position: fixed;
-  bottom: 40px;
+  bottom: 32px;
   left: 50%;
+  right: auto;
   transform: translateX(-50%) translateY(28px);
 
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 22px 32px 16px;
-  width: 200px;
+  gap: 8px;
+  padding: 16px 20px 12px;
+  width: min(276px, calc(100vw - 36px));
   box-sizing: border-box;
-  border-radius: 28px;
+  border-radius: 24px;
 
   background: rgba(255, 255, 255, 0.07);
   backdrop-filter: blur(32px) saturate(200%) brightness(1.08);
@@ -160,16 +161,42 @@ body {
   transition: color 0.45s ease;
 }
 
-/* ── 圆环容器（SVG + 时间叠层）── */
+/* ── 中间主体行：左圆环 + 右信息列 ── */
+#pom-main-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  transition: margin-top 0.3s ease;
+}
+/* 运行时输入框消失，顺势上移圆环，填补空白 */
+#pom-panel.running #pom-main-row {
+  margin-top: -6px;
+}
+
+/* ── 右侧信息列 ── */
+#pom-info-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex: 1;
+}
+
+/* ── 圆环容器（SVG + 阶段图标叠层）── */
 #pom-ring-wrap {
   position: relative;
-  width: 120px;
-  height: 120px;
+  width: 84px;
+  height: 84px;
   flex-shrink: 0;
+  margin-left: 8px;
+  margin-top: -8px; /* 视觉对齐：与右侧圆点保持同一水平线 */
 }
 #pom-ring-wrap svg {
-  width: 120px;
-  height: 120px;
+  width: 84px;
+  height: 84px;
   display: block;
 }
 #pom-ring-bg {
@@ -181,27 +208,24 @@ body {
   fill: none;
   stroke-width: 8;
   stroke-linecap: round;
+  transform-box: fill-box;
+  transform-origin: center;
   transform: rotate(-90deg);
-  transform-origin: 60px 60px;
   transition:
     stroke-dashoffset 0.9s cubic-bezier(0.4, 0, 0.2, 1),
     stroke            0.45s ease;
 }
 
-/* ── 倒计时（叠于圆环中心）── */
+/* ── 阶段图标（圆环中心）── */
 #pom-time {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
-  font-size: 22px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
-  color: rgba(218, 226, 238, 0.95);
-  letter-spacing: 0.05em;
+  font-size: 26px;
+  line-height: 1;
+  transform: translateY(-2px); /* 补偿 emoji 字形自带的下沉 baseline */
   pointer-events: none;
 }
 
@@ -323,27 +347,23 @@ body {
 #pom-session-stepper {
   display: flex;
   align-items: center;
-  gap: 10px;
-  max-height: 32px;
-  overflow: hidden;
-  transition:
-    opacity    0.25s ease,
-    max-height 0.35s ease;
+  gap: 8px;
+  transition: opacity 0.3s ease;
 }
+/* 运行时变暗但保持可见（让用户看到目标，不可操作）*/
 #pom-panel.running #pom-session-stepper {
-  opacity: 0;
-  max-height: 0;
+  opacity: 0.35;
   pointer-events: none;
 }
 #pom-sess-dec,
 #pom-sess-inc {
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(255, 255, 255, 0.08);
   color: rgba(200, 210, 228, 0.80);
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1;
   cursor: pointer;
   display: flex;
@@ -368,11 +388,11 @@ body {
 #pom-sess-count {
   font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
   font-size: 12px;
-  font-weight: 600;
-  color: rgba(175, 185, 205, 0.65);
-  min-width: 56px;
+  font-weight: 700;
+  color: rgba(175, 185, 205, 0.70);
+  min-width: 28px;
   text-align: center;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
 }
 
 /* ── 溢出圆点（>8 个番茄时显示 +N）── */
