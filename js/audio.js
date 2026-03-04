@@ -43,10 +43,25 @@ function changeTrack(delta) {
 }
 
 /* ══════════════════════════════════════════════
+   音量 HUD
+   ══════════════════════════════════════════════ */
+const volumeHud    = document.getElementById('volume-hud');
+const volumeTextEl = document.getElementById('volume-text');
+let   volumeHudTimer = null;
+
+function showVolumeHud() {
+  volumeTextEl.textContent = Math.round(music.volume * 100) + '%';
+  volumeHud.classList.add('visible');
+  clearTimeout(volumeHudTimer);
+  volumeHudTimer = setTimeout(() => volumeHud.classList.remove('visible'), 1800);
+}
+
+/* ══════════════════════════════════════════════
    调整音量（钳位在 0 ~ 1 之间）
    ══════════════════════════════════════════════ */
 function adjustVolume(delta) {
   music.volume = Math.min(1, Math.max(0, music.volume + delta));
+  showVolumeHud();
 }
 
 /* ══════════════════════════════════════════════
@@ -87,35 +102,44 @@ window.addEventListener('wheel',       handleWheel, { passive: true });
    ══════════════════════════════════════════════ */
 let touchStartX = 0;
 let touchStartY = 0;
+let lastTouchY  = 0;
+let touchDir    = null; // null | 'vertical' | 'horizontal'
 
 document.addEventListener('touchstart', e => {
   touchStartX = e.changedTouches[0].clientX;
   touchStartY = e.changedTouches[0].clientY;
+  lastTouchY  = touchStartY;
+  touchDir    = null;
 }, { passive: true });
 
 // 必须为非 passive，才能在竖向滑动时调用 preventDefault()
 // 阻止移动端浏览器的"下拉刷新"默认行为
 document.addEventListener('touchmove', e => {
-  const dx = e.changedTouches[0].clientX - touchStartX;
-  const dy = e.changedTouches[0].clientY - touchStartY;
-  // 判定为竖向手势时屏蔽默认行为（含下拉刷新）
-  if (Math.abs(dy) > Math.abs(dx)) {
+  const touch = e.changedTouches[0];
+  const dx = touch.clientX - touchStartX;
+  const dy = touch.clientY - touchStartY;
+
+  // 累积位移超过 8px 后确定手势方向（只判定一次）
+  if (touchDir === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+    touchDir = Math.abs(dy) >= Math.abs(dx) ? 'vertical' : 'horizontal';
+  }
+
+  if (touchDir === 'vertical') {
     e.preventDefault();
+    // 用与上一帧的增量实时调节音量，整屏滑完 = 满量程
+    const deltaY = touch.clientY - lastTouchY;
+    lastTouchY = touch.clientY;
+    adjustVolume(-deltaY / window.innerHeight);
   }
 }, { passive: false });
 
 document.addEventListener('touchend', e => {
-  const dx = e.changedTouches[0].clientX - touchStartX;
-  const dy = e.changedTouches[0].clientY - touchStartY;
-  const absDx = Math.abs(dx);
-  const absDy = Math.abs(dy);
+  const touch = e.changedTouches[0];
+  const dx = touch.clientX - touchStartX;
 
-  if (absDx >= absDy && absDx >= 50) {
-    // 水平滑动：切换曲目
-    changeTrack(dx < 0 ? +1 : -1);  // 左划下一曲，右划上一曲
-  } else if (absDy > absDx && absDy >= 50) {
-    // 垂直滑动：按滑动距离比例调节音量（整屏滑完 = 音量满量程）
-    // dy < 0 → 上划 → 音量增大；dy > 0 → 下划 → 音量减小
-    adjustVolume(-dy / window.innerHeight);
+  // 水平手势：松手时切换曲目（最小 50px）
+  if (touchDir === 'horizontal' && Math.abs(dx) >= 50) {
+    changeTrack(dx < 0 ? +1 : -1);
   }
+  touchDir = null;
 }, { passive: true });
