@@ -1,101 +1,145 @@
-﻿//添加歌曲需改动：list，切歌的最大值3个，共4处
-var list=new Array("files/rain.mp3","files/meditation.mp3","files/Wait on the Lord.mp3","files/YanDaiXieJie.mp3",
-"files/XingChaHui.mp3","files/SuoNianJieXingHe.mp3");  //添加歌曲需要改这里！
-var n=0;
+﻿'use strict';
 
-var music = new Audio("files/rain.mp3");music.loop = true;
-var tem = false  //设置一个变量，用来控制音乐是否在播放。
+/* ══════════════════════════════════════════════
+   曲目列表
+   增删歌曲只需修改这里，无需改动其他任何地方
+   ══════════════════════════════════════════════ */
+const TRACKS = [
+  'files/rain.mp3',
+  'files/meditation.mp3',
+  'files/Wait on the Lord.mp3',
+  'files/YanDaiXieJie.mp3',
+  'files/XingChaHui.mp3',
+  'files/SuoNianJieXingHe.mp3',
+];
 
-//var x = document.getElementById("music");  //把上下箭头控制音量顺便做这了
-var vol = music.volume;
-function upvolume() {
-	vol = music.volume;
-	music.volume = vol + 0.05;
-	vol = music.volume;
-	return vol;
-};
-function downvolume() {
-	vol = music.volume;
-	music.volume = vol - 0.05;
-	vol = music.volume;
-	return vol;
-};
+let currentIndex = 0;
+let isPlaying    = false;
 
-//定义一个函数，当用户单击的时候触发这个函数，从而实现音乐的暂停与播放。
-function musiccc(){
-	//tem用来控制音乐当前是否在播放。true代表音乐正在播放，false代表音乐当前正在处于暂停的状态。
-	if(tem == false){
-		music.play()  //播放音乐
-		tem = true  
-	}else{
-		music.pause()  //暂停音乐
-		tem = false
-	}
+const music  = new Audio(TRACKS[currentIndex]);
+music.loop   = true;
+
+/* ══════════════════════════════════════════════
+   播放 / 暂停
+   ══════════════════════════════════════════════ */
+function togglePlay() {
+  if (isPlaying) {
+    music.pause();
+  } else {
+    // play() 返回 Promise，捕获浏览器自动播放策略拦截的错误
+    music.play().catch(() => {});
+  }
+  isPlaying = !isPlaying;
 }
 
-function getKeyCode(e) {
-var keyCode = 0;
-var e = e || window.event;
-
-if (e.keyCode=="37"  && n>=0) {
-  if (n>0) n = n - 1;
-  else n=5;  //添加歌曲需要改这里！
-  music.pause();
-  music = new Audio(list[n]);music.loop = true;
-  music.volume = vol;
-  if (tem == true) music.play();
-};
-
-if (e.keyCode=="39" && n<=5) {  //添加歌曲需要改这里！
-  if (n<5) n = n + 1;  //添加歌曲需要改这里！
-  else n=0;
-  music.pause();
-  music = new Audio(list[n]);music.loop = true;
-  music.volume = vol;
-  if (tem == true) music.play();
-};
-
-if (e.keyCode=="32") {  //空格暂停
-	if(tem == false){
-		music.play()  //播放音乐
-		tem = true  
-	}else{
-		music.pause()  //暂停音乐
-		tem = false
-	}
-};
-
-if (e.keyCode=="38") {  //上箭头增加音量也做这了
-  upvolume();
-};
-
-if (e.keyCode=="40") {  //下箭头减小音量也做这了
-  downvolume();
-};
-
-if (e.keyCode=="13") {  //回车全屏做这了
-Fullscreen(document)
-};
-
-if (e.keyCode == "122") {  //F11全屏
-	event.preventDefault(); //阻止浏览器的默认行为
-	Fullscreen(document);} //调用H5的api
+/* ══════════════════════════════════════════════
+   切换曲目（delta: +1 下一首，-1 上一首）
+   ══════════════════════════════════════════════ */
+function changeTrack(delta) {
+  currentIndex = (currentIndex + delta + TRACKS.length) % TRACKS.length;
+  music.src  = TRACKS[currentIndex];
+  music.loop = true;
+  if (isPlaying) music.play().catch(() => {});
 }
 
-var scrollFunc = function(e) {
-	var e = e || window.event;
-	if(e.wheelDelta){
-		if(e.wheelDelta > 0) {     //当鼠标滚轮向上滚动时
-	upvolume();
-		};
-		if(e.wheelDelta < 0) {     //当鼠标滚轮向下滚动时
-	downvolume();
-		};
-	};}
+/* ══════════════════════════════════════════════
+   音量 HUD
+   ══════════════════════════════════════════════ */
+const volumeHud    = document.getElementById('volume-hud');
+const volumeTextEl = document.getElementById('volume-text');
+let   volumeHudTimer = null;
 
-//给页面绑定鼠标滚轮事件,针对火狐的非标准事件 
-window.addEventListener("DOMMouseScroll", scrollFunc)
-//给页面绑定鼠标滚轮事件，针对Google，mousewheel非标准事件已被弃用，请使用 wheel事件代替
-window.addEventListener("wheel", scrollFunc)
-//ie不支持wheel事件，若一定要兼容，可使用mousewheel
-window.addEventListener("mousewheel", scrollFunc)
+function showVolumeHud() {
+  volumeTextEl.textContent = Math.round(music.volume * 100) + '%';
+  volumeHud.classList.add('visible');
+  clearTimeout(volumeHudTimer);
+  volumeHudTimer = setTimeout(() => volumeHud.classList.remove('visible'), 1800);
+}
+
+/* ══════════════════════════════════════════════
+   调整音量（钳位在 0 ~ 1 之间）
+   ══════════════════════════════════════════════ */
+function adjustVolume(delta) {
+  music.volume = Math.min(1, Math.max(0, music.volume + delta));
+  showVolumeHud();
+}
+
+/* ══════════════════════════════════════════════
+   键盘事件（使用标准 e.key，替代已废弃的 e.keyCode）
+   ══════════════════════════════════════════════ */
+function handleKeyDown(e) {
+  switch (e.key) {
+    case 'ArrowLeft':  changeTrack(-1);                        break;
+    case 'ArrowRight': changeTrack(1);                         break;
+    case 'ArrowUp':    adjustVolume(0.05);                     break;
+    case 'ArrowDown':  adjustVolume(-0.05);                    break;
+    case ' ':          e.preventDefault(); togglePlay();       break;
+    case 'Enter':      toggleFullscreen();                     break;
+    case 'F11':        e.preventDefault(); toggleFullscreen(); break;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   滚轮事件（使用标准 deltaY，替代非标准 wheelDelta）
+   ══════════════════════════════════════════════ */
+function handleWheel(e) {
+  adjustVolume(e.deltaY < 0 ? 0.05 : -0.05);
+}
+
+/* ══════════════════════════════════════════════
+   绑定所有事件（集中管理，不使用 HTML 内联属性）
+   ══════════════════════════════════════════════ */
+mainEl.addEventListener('click',   togglePlay);
+document.addEventListener('dblclick',  toggleFullscreen);
+document.addEventListener('keydown',   handleKeyDown);
+window.addEventListener('wheel',       handleWheel, { passive: true });
+
+/* ══════════════════════════════════════════════
+   触摸滑动事件
+     左划  → 下一曲      右划  → 上一曲
+     上划  → 音量增大    下划  → 音量减小
+   最小触发距离 50px；以位移较大的轴判断方向
+   ══════════════════════════════════════════════ */
+let touchStartX = 0;
+let touchStartY = 0;
+let lastTouchY  = 0;
+let touchDir    = null; // null | 'vertical' | 'horizontal'
+
+document.addEventListener('touchstart', e => {
+  touchStartX = e.changedTouches[0].clientX;
+  touchStartY = e.changedTouches[0].clientY;
+  lastTouchY  = touchStartY;
+  touchDir    = null;
+}, { passive: true });
+
+// 必须为非 passive，才能在竖向滑动时调用 preventDefault()
+// 阻止移动端浏览器的"下拉刷新"默认行为
+document.addEventListener('touchmove', e => {
+  const touch = e.changedTouches[0];
+  const dx = touch.clientX - touchStartX;
+  const dy = touch.clientY - touchStartY;
+
+  // 累积位移超过 8px 后确定手势方向（只判定一次）
+  if (touchDir === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+    touchDir = Math.abs(dy) >= Math.abs(dx) ? 'vertical' : 'horizontal';
+  }
+
+  if (touchDir === 'vertical') {
+    e.preventDefault();
+    // 用与上一帧的增量实时调节音量，整屏滑完 = 满量程
+    const deltaY = touch.clientY - lastTouchY;
+    lastTouchY = touch.clientY;
+    adjustVolume(-deltaY / window.innerHeight);
+  }
+}, { passive: false });
+
+document.addEventListener('touchend', e => {
+  const touch = e.changedTouches[0];
+  const dx = touch.clientX - touchStartX;
+
+  // 水平手势：松手时切换曲目（最小 50px）
+  if (touchDir === 'horizontal' && Math.abs(dx) >= 50) {
+    changeTrack(dx < 0 ? +1 : -1);
+  }
+  touchDir = null;
+}, { passive: true });
