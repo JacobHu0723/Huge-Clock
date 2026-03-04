@@ -1,52 +1,46 @@
-﻿// 定义版本号和缓存名称
-var cacheStorageKey = 'minimal-pwa-29';
+﻿// 版本号变更会触发 Service Worker 更新并清除旧缓存
+const CACHE_VERSION = 'huge-clock-v30';
 
-// 定义需要缓存的文件列表
-var cacheList = [
+const CACHE_FILES = [
   '/',
-  "https://jacobhu0723.github.io/Huge-Clock/index.html",
-  "https://jacobhu0723.github.io/Huge-Clock/manifest.json",
-  "https://jacobhu0723.github.io/Huge-Clock/js/audio.js",
-  "https://jacobhu0723.github.io/Huge-Clock/js/NoSleep.min.js",
+  'https://jacobhu0723.github.io/Huge-Clock/index.html',
+  'https://jacobhu0723.github.io/Huge-Clock/manifest.json',
+  'https://jacobhu0723.github.io/Huge-Clock/css/style.css',
+  'https://jacobhu0723.github.io/Huge-Clock/js/clock.js',
+  'https://jacobhu0723.github.io/Huge-Clock/js/audio.js',
+  'https://jacobhu0723.github.io/Huge-Clock/js/NoSleep.min.js',
 ];
 
-// 监听 install 事件，在安装 Service Worker 时缓存文件
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(cacheStorageKey)
-    .then(cache => cache.addAll(cacheList))
-    .then(() => self.skipWaiting())
+// 安装：缓存所有静态资源，安装完成后立即激活
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_VERSION)
+      .then(cache => cache.addAll(CACHE_FILES))
+      .then(() => self.skipWaiting())
   );
 });
 
-// 监听 activate 事件，在激活 Service Worker 时清除旧缓存
-self.addEventListener('activate', function(e) {
-  e.waitUntil(
-    Promise.all([
-      caches.keys().then(cacheNames => {
-        return cacheNames.map(name => {
-          if (name !== cacheStorageKey) {
-            return caches.delete(name);
-          }
-        });
-      })
-    ]).then(() => {
-      return self.clients.claim();
-    })
+// 激活：删除所有旧版本缓存
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys()
+      .then(names => Promise.all(
+        names
+          .filter(name => name !== CACHE_VERSION)
+          .map(name => caches.delete(name))
+      ))
+      .then(() => self.clients.claim())
   );
 });
 
-// 监听 fetch 事件，在发起网络请求时返回缓存的响应
+// 请求拦截：优先返回缓存，缓存未命中则发起网络请求
 self.addEventListener('fetch', event => {
-  console.log('[Service Worker] Fetching something ....', event);
-  // This fixes a weird bug in Chrome when you open the Developer Tools
+  // Chrome DevTools 打开时会产生 only-if-cached + cors 的请求，需跳过
   if (event.request.cache === 'only-if-cached' && event.request.mode !== 'same-origin') {
     return;
   }
   event.respondWith(
     caches.match(event.request)
-    .then(response => {
-      return response || fetch(event.request);
-    })
+      .then(response => response || fetch(event.request))
   );
 });

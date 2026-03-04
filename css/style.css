@@ -1,0 +1,27 @@
+/* ── 页面基础 ── */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background-color: #000;
+}
+
+/* ── 时钟样式 ── */
+#main {
+  color: #dee1e6;
+  font-weight: bold;
+  text-align: center;
+  position: fixed;
+  left: 0;
+  right: 0;
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+
+  /* 等宽数字：防止数字宽度差异导致时钟抖动 */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+
+  /* 禁止双击选中文字 */
+  user-select: none;
+
+  cursor: pointer;
+}
