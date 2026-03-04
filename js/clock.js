@@ -34,7 +34,7 @@ const resizeEvt = 'orientationchange' in window ? 'orientationchange' : 'resize'
 window.addEventListener(resizeEvt, recalcLayout);
 
 /* ══════════════════════════════════════════════
-   全屏切换（修复原版同时调用 request+exit 的 Bug）
+   全屏切换
    ══════════════════════════════════════════════ */
 function toggleFullscreen() {
   const inFullscreen =

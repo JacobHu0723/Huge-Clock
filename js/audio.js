@@ -78,3 +78,44 @@ mainEl.addEventListener('click',   togglePlay);
 document.addEventListener('dblclick',  toggleFullscreen);
 document.addEventListener('keydown',   handleKeyDown);
 window.addEventListener('wheel',       handleWheel, { passive: true });
+
+/* ══════════════════════════════════════════════
+   触摸滑动事件
+     左划  → 下一曲      右划  → 上一曲
+     上划  → 音量增大    下划  → 音量减小
+   最小触发距离 50px；以位移较大的轴判断方向
+   ══════════════════════════════════════════════ */
+let touchStartX = 0;
+let touchStartY = 0;
+
+document.addEventListener('touchstart', e => {
+  touchStartX = e.changedTouches[0].clientX;
+  touchStartY = e.changedTouches[0].clientY;
+}, { passive: true });
+
+// 必须为非 passive，才能在竖向滑动时调用 preventDefault()
+// 阻止移动端浏览器的"下拉刷新"默认行为
+document.addEventListener('touchmove', e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  // 判定为竖向手势时屏蔽默认行为（含下拉刷新）
+  if (Math.abs(dy) > Math.abs(dx)) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+document.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+
+  if (absDx >= absDy && absDx >= 50) {
+    // 水平滑动：切换曲目
+    changeTrack(dx < 0 ? +1 : -1);  // 左划下一曲，右划上一曲
+  } else if (absDy > absDx && absDy >= 50) {
+    // 垂直滑动：按滑动距离比例调节音量（整屏滑完 = 音量满量程）
+    // dy < 0 → 上划 → 音量增大；dy > 0 → 下划 → 音量减小
+    adjustVolume(-dy / window.innerHeight);
+  }
+}, { passive: true });
