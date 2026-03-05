@@ -429,6 +429,82 @@ function pomRenderTodos() {
       <button class="todo-play" title="应用此待办到番茄钟">▶</button>
       <button class="todo-del" title="删除此待办">✕</button>
     `;
+
+    // 允许点击预计番茄图标区域来修改番茄数
+    const pomsContainer = el.querySelector('.todo-poms');
+    pomsContainer.style.cursor = 'pointer';
+    pomsContainer.title = '点击修改预计番茄数';
+    pomsContainer.addEventListener('click', (e) => {
+      e.stopPropagation();
+      let dropdown = el.querySelector('.inv-est-dropdown');
+      if (dropdown) {
+        dropdown.classList.toggle('show');
+        if (dropdown.classList.contains('show')) {
+          dropdown.querySelector('.inv-est-input').focus();
+        }
+        return;
+      }
+      dropdown = document.createElement('div');
+      dropdown.className = 'inv-est-dropdown';
+      dropdown.innerHTML = `
+        <div style="display:flex; align-items:center; gap: 6px; padding-left: 4px; white-space:nowrap; overflow:hidden;">
+          <span style="font-size:13px; color:rgba(255,255,255,0.6);">🎯 目标</span>
+          <div class="todo-est-stepper" style="padding:2px 6px; margin-left: 7px;">
+            <button class="inv-est-minus" tabindex="-1">−</button>
+            <input type="number" class="inv-est-input" value="${item.est}" min="1" max="8" style="width:14px; text-align:center; padding:0; font-weight:bold; font-size:14px;" />
+            <button class="inv-est-plus" tabindex="-1">＋</button>
+          </div>
+        </div>
+        <div class="inv-est-actions" style="margin-left: auto; padding-right: 4px; gap: 6px; flex-shrink: 0;">
+          <button class="inv-est-cancel" tabindex="-1">取消</button>
+          <button class="inv-est-confirm" tabindex="-1">确认</button>
+        </div>
+      `;
+      dropdown.addEventListener('click', ev => ev.stopPropagation());
+      el.appendChild(dropdown);
+      // 强制重绘以触发 transition 展开
+      void dropdown.offsetWidth;
+      dropdown.classList.add('show');
+
+      const inputEl = dropdown.querySelector('.inv-est-input');
+      const minusBtn = dropdown.querySelector('.inv-est-minus');
+      const plusBtn = dropdown.querySelector('.inv-est-plus');
+      const cancelBtn = dropdown.querySelector('.inv-est-cancel');
+      const confirmBtn = dropdown.querySelector('.inv-est-confirm');
+
+      inputEl.focus();
+
+      minusBtn.addEventListener('click', () => {
+        let val = parseInt(inputEl.value) || 1;
+        if (val > 1) inputEl.value = val - 1;
+      });
+      plusBtn.addEventListener('click', () => {
+        let val = parseInt(inputEl.value) || 1;
+        if (val < 8) inputEl.value = val + 1;
+      });
+      inputEl.addEventListener('keydown', ev => {
+        if (ev.key === 'Enter') confirmBtn.click();
+        if (ev.key === 'Escape') cancelBtn.click();
+      });
+
+      cancelBtn.addEventListener('click', () => dropdown.classList.remove('show'));
+
+      confirmBtn.addEventListener('click', () => {
+        let val = parseInt(inputEl.value) || 1;
+        if (val < 1) val = 1;
+        item.est = val;
+        
+        // 如果当前正在计时该任务，则同步更新面板显示
+        if (pomCurrentTodoId === item.id) {
+          pomTargetSessions = val;
+          pomRender();
+        }
+        
+        pomSaveTodos();
+        pomRenderTodos();
+      });
+    });
+
     // 勾选完成
     const chk = el.querySelector('.todo-chk');
     chk.addEventListener('change', (e) => {
@@ -487,23 +563,22 @@ function pomRenderInventory() {
   pomInventory.forEach(item => {
     const el = document.createElement('div');
     el.className = `todo-item ${item.completed ? 'completed' : ''}`;
-    // 生成番茄图标
-    let poms = '';
-    for (let i = 0; i < item.est; i++) {
-      poms += '<span class="todo-poms-empty">⚪</span>';
-    }
     el.innerHTML = `
       <div class="todo-info" style="padding-left: 8px;">
         <div class="todo-name" title="${item.text}">${item.text}</div>
-        <div class="todo-poms" style="opacity: 0.6;">${poms}</div>
       </div>
-      <button class="todo-play" title="添加到今日待办并开始" style="font-size: 14px; margin-right: 8px;">＋</button>
+      <button class="todo-play" title="添加到今日待办" style="font-size: 14px; margin-right: 8px;">＋</button>
       <button class="todo-del" title="删除此活动">✕</button>
     `;
     // 移入今日待办
     const addBtn = el.querySelector('.todo-play');
     addBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      const alreadyInToday = pomTodos.find(t => t.inventoryOriginalId === item.id && !t.completed);
+      if (alreadyInToday) {
+        pomNotify('不可重复添加：该活动已在今日待办中', false);
+        return;
+      }
       let dropdown = el.querySelector('.inv-est-dropdown');
       if (dropdown) {
         dropdown.classList.toggle('show');
@@ -516,15 +591,15 @@ function pomRenderInventory() {
       dropdown = document.createElement('div');
       dropdown.className = 'inv-est-dropdown';
       dropdown.innerHTML = `
-        <div style="flex:1; display:flex; align-items:center; gap: 8px; padding-left: 8px;">
-          <span style="font-size:12px; color:rgba(255,255,255,0.6);">预计番茄</span>
-          <div class="todo-est-stepper" style="padding:2px 8px;">
+        <div style="display:flex; align-items:center; gap: 6px; padding-left: 4px; white-space:nowrap; overflow:hidden;">
+          <span style="font-size:13px; color:rgba(255,255,255,0.6);">🎯 目标</span>
+          <div class="todo-est-stepper" style="padding:2px 6px; margin-left: 7px;">
             <button class="inv-est-minus" tabindex="-1">−</button>
-            <input type="number" class="inv-est-input" value="${item.est}" min="1" max="8" style="width:20px; text-align:center; padding:0; font-weight:bold; font-size:14px;" />
+            <input type="number" class="inv-est-input" value="${item.est}" min="1" max="8" style="width:14px; text-align:center; padding:0; font-weight:bold; font-size:14px;" />
             <button class="inv-est-plus" tabindex="-1">＋</button>
           </div>
         </div>
-        <div class="inv-est-actions" style="padding-right: 8px;">
+        <div class="inv-est-actions" style="margin-left: auto; padding-right: 4px; gap: 6px; flex-shrink: 0;">
           <button class="inv-est-cancel" tabindex="-1">取消</button>
           <button class="inv-est-confirm" tabindex="-1">确认</button>
         </div>
@@ -800,8 +875,5 @@ document.addEventListener('click', () => {
 
 pomLoadTodos();
 pomRenderTodos();
-
-
-
 
 
