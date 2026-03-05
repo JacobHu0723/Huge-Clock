@@ -93,13 +93,92 @@ function pomRender() {
   pomSessCountEl.textContent = `×${pomTargetSessions}`;
 }
 
+// ── 系统提示音 ────────────────────────────────
+function pomPlayChime() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const now = ctx.currentTime;
+    
+    // 获取全局音乐音量设置（听从 audio.js 中 music 对象的值）
+    const sysVolume = (typeof music !== 'undefined' && music !== null) ? music.volume : 1.0;
+    if (sysVolume <= 0) return; // 如果全局静音，则不发声
+
+    // 顶层主音量控制
+    const masterGain = ctx.createGain();
+    masterGain.gain.value = sysVolume;
+    masterGain.connect(ctx.destination);
+    
+    // 合成短促、干净的现代“Din”提示音，并带有舒适的延音
+    // 起音极快，随后平滑衰减，整体发声时长约 2.5 秒
+    const envelopeGain = ctx.createGain();
+    envelopeGain.connect(masterGain);
+    
+    // 迅猛起音（强化“D”的动态），随后平缓衰减
+    envelopeGain.gain.setValueAtTime(0, now);
+    envelopeGain.gain.linearRampToValueAtTime(1.0, now + 0.005);
+    envelopeGain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+
+    // 大幅拉高基频，构造高亢、空灵、极其清脆的“Din”
+    const baseFreq = 2600; 
+    
+    const partials = [
+      { mult: 1.0, type: 'sine', gain: 1.0, decay: 2.0 },   // 高频纯净主延音（留存最久，制造玻璃/冰块的清透感）
+      { mult: 2.0, type: 'sine', gain: 0.4, decay: 0.1 },  // 更高八度的瞬间闪烁感
+      { mult: 3.0, type: 'sine', gain: 0.2, decay: 0.03 }  // 极高频瞬态敲击点
+    ];
+
+    partials.forEach(p => {
+      const osc = ctx.createOscillator();
+      osc.type = p.type;
+      osc.frequency.value = baseFreq * p.mult;
+      
+      const vca = ctx.createGain();
+      
+      // 让衰减变得更利落坚决
+      vca.gain.setValueAtTime(0, now);
+      vca.gain.linearRampToValueAtTime(p.gain, now + 0.005);
+      vca.gain.exponentialRampToValueAtTime(0.001, now + p.decay);
+      
+      osc.connect(vca);
+      vca.connect(envelopeGain);
+      
+      osc.start(now);
+      osc.stop(now + 3.0);
+    });
+
+  } catch(e) {
+    console.warn("无法播放番茄钟提示音", e);
+  }
+}
+
+// ── 发送系统通知 ──────────────────────────────
+function pomSystemNotify(msg) {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "granted") {
+    new Notification("Huge Clock", { body: msg, icon: "favicon.ico" });
+  } else if (Notification.permission !== "denied") {
+    Notification.requestPermission().then(permission => {
+      if (permission === "granted") {
+        new Notification("Huge Clock", { body: msg, icon: "favicon.ico" });
+      }
+    });
+  }
+}
+
 // ── 通知横幅 ──────────────────────────────────
 let pomNotifTimer = null;
-function pomNotify(msg) {
+function pomNotify(msg, playSoundAndSys = false) {
   pomNotifEl.textContent = msg;
   pomNotifEl.classList.add('visible');
   clearTimeout(pomNotifTimer);
   pomNotifTimer = setTimeout(() => pomNotifEl.classList.remove('visible'), 3500);
+
+  if (playSoundAndSys) {
+    pomPlayChime();
+    pomSystemNotify(msg);
+  }
 }
 
 // ── 计时器逻辑 ────────────────────────────────
@@ -117,6 +196,11 @@ function pomTick() {
 }
 
 function pomStartTimer() {
+  // 请求通知权限，防止在计时结时由于非用户点击导致浏览器拦截权限请求
+  if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+    Notification.requestPermission();
+  }
+
   clearInterval(pomInterval);
   pomRunning = true;
   pomPanelEl.classList.add('running');
@@ -156,10 +240,10 @@ function pomOnPhaseEnd() {
 
     if (taskDone) {
       const nameStr = taskName ? `"${taskName}" ` : '';
-      pomNotify(`🎉 ${nameStr}完成！共专注 ${pomTotalFocusDone} 个🍅`);
+      pomNotify(`🎉 ${nameStr}完成！共专注 ${pomTotalFocusDone} 个🍅`, true);
     } else {
       const breakLabel = pomPhaseIdx === 2 ? '长休息' : '短休息';
-      pomNotify(`✅ 专注结束，开始${breakLabel}（${pomTotalFocusDone}/${pomTargetSessions}）`);
+      pomNotify(`✅ 专注结束，开始${breakLabel}（${pomTotalFocusDone}/${pomTargetSessions}）`, true);
     }
     pomRender();
     pomStartTimer();
@@ -176,9 +260,9 @@ function pomOnPhaseEnd() {
       pomRender();
       pomPauseTimer();           // 同时解锁输入框
       pomTaskInputEl.value = '';
-      pomNotify('✨ 开始下一个任务吧！');
+      pomNotify('✨ 开始下一个任务吧！', true);
     } else {
-      pomNotify('⏱ 休息结束，开始新的专注！');
+      pomNotify('⏱ 休息结束，开始新的专注！', true);
       pomRender();
       pomStartTimer();
     }
@@ -194,7 +278,7 @@ function pomShow() {
 
 function pomHide() {
   pomVisible = false;
-  pomPauseTimer();
+  // pomPauseTimer(); /* 取消暂停，使其可以在后台打卡 */
   pomPanelEl.classList.remove('visible');
 }
 
@@ -231,21 +315,22 @@ window._pomKeyEsc = pomKeyEsc;
 
 // ── 事件绑定 ──────────────────────────────────
 
-// 悬浮按钮点击
-pomFabEl.addEventListener('click', pomKeyP);
-
-// 面板点击：开始 / 暂停（阻止冒泡，防止触发全屏等）
-pomPanelEl.addEventListener('click', e => {
-  e.stopPropagation();
-  if (!pomVisible) return;
-  if (pomRunning) pomPauseTimer();
-  else pomStartTimer();
+// 悬浮按钮点击：仅切换面板显示/隐藏，不暂停/开始
+pomFabEl.addEventListener('click', () => {
+  if (pomVisible) {
+    pomHide();
+  } else {
+    pomShow();
+  }
 });
+
+// 面板点击：仅阻止冒泡，防止触发全屏等（开始/暂停由专属按钮负责）
+pomPanelEl.addEventListener('click', e => e.stopPropagation());
 
 // 阻止面板双击触发全屏
 pomPanelEl.addEventListener('dblclick', e => e.stopPropagation());
 
-// 任务输入框：阻止冒泡，防止触发面板的开始/暂停
+// 任务输入框：阻止冒泡（保留，防止冒泡到 document）
 pomTaskInputEl.addEventListener('click',    e => e.stopPropagation());
 pomTaskInputEl.addEventListener('dblclick', e => e.stopPropagation());
 // Enter 键确认后失焦
@@ -279,3 +364,11 @@ document.getElementById('pom-btn-close').addEventListener('click', e => {
 
 // ── 初始化渲染 ────────────────────────────────
 pomRender();
+
+// ── 调试辅助函数 ──────────────────────────────
+window._pomSkip = function(seconds = 10) {
+  pomTimeLeft = seconds;
+  pomRender();
+  console.log(`%c[Debug] %c番茄钟已快进至剩余 ${seconds} 秒`, 'color: #ff7043; font-weight: bold;', 'color: inherit;');
+  return `快进成功: 剩 ${seconds} 秒`;
+};

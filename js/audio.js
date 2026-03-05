@@ -52,8 +52,12 @@ let   volumeHudTimer = null;
 function showVolumeHud() {
   volumeTextEl.textContent = Math.round(music.volume * 100) + '%';
   volumeHud.classList.add('visible');
+  document.body.classList.add('vol-hud-active');
   clearTimeout(volumeHudTimer);
-  volumeHudTimer = setTimeout(() => volumeHud.classList.remove('visible'), 1800);
+  volumeHudTimer = setTimeout(() => {
+    volumeHud.classList.remove('visible');
+    document.body.classList.remove('vol-hud-active');
+  }, 1800);
 }
 
 /* ══════════════════════════════════════════════

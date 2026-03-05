@@ -36,7 +36,14 @@ body {
   left: 50%;
   transform: translateX(-50%) translateY(-14px);
 
-  padding: 12px 22px;
+  /* 统一高度与内边距 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 46px;
+  padding: 0 24px;
+  box-sizing: border-box;
+
   border-radius: 50px;
 
   /* 液态玻璃效果 */
@@ -115,7 +122,6 @@ body {
   bottom: 32px;
   left: 50%;
   right: auto;
-  transform: translateX(-50%) translateY(28px);
 
   display: flex;
   flex-direction: column;
@@ -138,17 +144,21 @@ body {
   opacity: 0;
   pointer-events: none;
   user-select: none;
-  cursor: pointer;
   z-index: 9000;
+
+  /* 初始/收起状态：从居中位置平移到视口右下角的番茄按钮处，并缩小 */
+  transform: translateX(-50%) translate(calc(50vw - 41px), 45px) scale(0.05);
+  transform-origin: center center;
 
   transition:
     opacity   0.35s ease,
-    transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform 0.45s cubic-bezier(0.2, 1.15, 0.4, 1); /* 减轻回弹力度 */
 }
 #pom-panel.visible {
   opacity: 1;
   pointer-events: auto;
-  transform: translateX(-50%) translateY(0);
+  /* 展开状态：水平居中并恢复原大小 */
+  transform: translateX(-50%) translate(0, 0) scale(1);
 }
 
 /* ── 阶段标签 ── */
@@ -347,11 +357,18 @@ body.is-touch .pom-action-btn::after {
 /* ── 阶段切换通知横幅 ── */
 #pom-notif {
   position: fixed;
-  top: 160px;
+  top: 92px;
   left: 50%;
-  transform: translateX(-50%) translateY(-16px);
+  transform: translateX(-50%) translateY(-14px);
 
-  padding: 11px 22px;
+  /* 统一高度与内边距 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 46px;
+  padding: 0 24px;
+  box-sizing: border-box;
+
   border-radius: 50px;
 
   background: rgba(255, 255, 255, 0.10);
@@ -373,14 +390,19 @@ body.is-touch .pom-action-btn::after {
   pointer-events: none;
   user-select: none;
   z-index: 9997;
-
+  
+  /* 当同时出现 volume-hud 时向下偏移避免重叠，这里的过渡效果会包含 top 属性 */
   transition:
     opacity   0.28s ease,
+    top       0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
     transform 0.40s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 #pom-notif.visible {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
+}
+body.vol-hud-active #pom-notif {
+  top: 154px; /* 当音量弹窗也显现时，番茄通知会被自动挤到下一排 */
 }
 
 /* ── 任务名称输入框 ── */
