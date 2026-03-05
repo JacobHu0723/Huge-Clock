@@ -502,28 +502,77 @@ function pomRenderInventory() {
     `;
     // 移入今日待办
     const addBtn = el.querySelector('.todo-play');
-    addBtn.addEventListener('click', () => {
-      // 严格番茄工作法：将活动直接复制（提取）到今日待办中，但原活动清单依然保留，
-      // 以便在历史中或未来的活动管理中能够追溯，只有当今日代办被彻底勾选完成时才会触发后续可能的清理
-      // 创建一个深拷贝并赋予新ID（以防重复添加产生冲突）
-      const todoItem = { ...item, id: Date.now() };
-      const estInput = prompt(`为任务【${item.text}】设定今日计划番茄数：`, item.est);
-      if (estInput !== null) {
-        const parsedEst = parseInt(estInput, 10);
-        if (!isNaN(parsedEst) && parsedEst > 0) {
-          todoItem.est = parsedEst;
+    addBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      let dropdown = el.querySelector('.inv-est-dropdown');
+      if (dropdown) {
+        dropdown.classList.toggle('show');
+        if (dropdown.classList.contains('show')) {
+          dropdown.querySelector('.inv-est-input').focus();
         }
-      } else { return; } // 取消则不添加
-      // 为了让今日待办完成时能反向划除，我们需要互相记录引用ID
-      todoItem.inventoryOriginalId = item.id;
-      item.todayInstances = item.todayInstances || [];
-      item.todayInstances.push(todoItem.id);
-      pomTodos.push(todoItem);
-      pomSaveTodos();
-      pomRenderInventory(); // 重新渲染（可展现某种状态改变，如暂时不处理也可）
-      pomRenderTodos();
-      // 移除强制的视图跳转（不再使用 pomSetViewMode 和一系列的样式变更跳转到今日待办）
-      pomNotify(`已将 "${item.text}" 提取至今日待办`, false);
+        return;
+      }
+      // 首次点击，动态渲染内联预计番茄数设置界面
+      dropdown = document.createElement('div');
+      dropdown.className = 'inv-est-dropdown';
+      dropdown.innerHTML = `
+        <div style="flex:1; display:flex; align-items:center; gap: 8px; padding-left: 8px;">
+          <span style="font-size:12px; color:rgba(255,255,255,0.6);">预计番茄</span>
+          <div class="todo-est-stepper" style="padding:2px 8px;">
+            <button class="inv-est-minus" tabindex="-1">−</button>
+            <input type="number" class="inv-est-input" value="${item.est}" min="1" max="8" style="width:20px; text-align:center; padding:0; font-weight:bold; font-size:14px;" />
+            <button class="inv-est-plus" tabindex="-1">＋</button>
+          </div>
+        </div>
+        <div class="inv-est-actions" style="padding-right: 8px;">
+          <button class="inv-est-cancel" tabindex="-1">取消</button>
+          <button class="inv-est-confirm" tabindex="-1">确认</button>
+        </div>
+      `;
+      // 防止点击冒泡关闭自身
+      dropdown.addEventListener('click', ev => ev.stopPropagation());
+      el.appendChild(dropdown);
+      // 强制重绘以触发 transition 展开
+      void dropdown.offsetWidth;
+      dropdown.classList.add('show');
+
+      const inputEl = dropdown.querySelector('.inv-est-input');
+      const minusBtn = dropdown.querySelector('.inv-est-minus');
+      const plusBtn = dropdown.querySelector('.inv-est-plus');
+      const cancelBtn = dropdown.querySelector('.inv-est-cancel');
+      const confirmBtn = dropdown.querySelector('.inv-est-confirm');
+
+      inputEl.focus();
+
+      minusBtn.addEventListener('click', () => {
+        let val = parseInt(inputEl.value) || 1;
+        if (val > 1) inputEl.value = val - 1;
+      });
+      plusBtn.addEventListener('click', () => {
+        let val = parseInt(inputEl.value) || 1;
+        if (val < 8) inputEl.value = val + 1;
+      });
+      inputEl.addEventListener('keydown', ev => {
+        if (ev.key === 'Enter') confirmBtn.click();
+        if (ev.key === 'Escape') cancelBtn.click();
+      });
+
+      cancelBtn.addEventListener('click', () => dropdown.classList.remove('show'));
+
+      confirmBtn.addEventListener('click', () => {
+        let val = parseInt(inputEl.value) || 1;
+        if (val < 1) val = 1;
+        const todoItem = { ...item, id: Date.now(), est: val };
+        todoItem.inventoryOriginalId = item.id;
+        item.todayInstances = item.todayInstances || [];
+        item.todayInstances.push(todoItem.id);
+        
+        pomTodos.push(todoItem);
+        pomSaveTodos();
+        pomRenderTodos();
+        pomNotify(`已将 "${item.text}" 提取至今日待办`, false);
+        dropdown.classList.remove('show');
+      });
     });
     // 删除
     const delBtn = el.querySelector('.todo-del');
@@ -742,6 +791,13 @@ document.getElementById('todo-est-plus').addEventListener('click', () => {
 todoPanelEl.addEventListener('click', e => e.stopPropagation());
 // 防止双击待办面板触发全屏
 todoPanelEl.addEventListener('dblclick', e => e.stopPropagation());
+// 失去焦点时隐藏所有的活动清单展开界面
+document.addEventListener('click', () => {
+  document.querySelectorAll('.inv-est-dropdown.show').forEach(el => {
+    el.classList.remove('show');
+  });
+});
+
 pomLoadTodos();
 pomRenderTodos();
 
