@@ -847,6 +847,7 @@ body.is-touch .todo-icon-btn[data-key]::after {
   flex-direction: column;
   gap: 0;
   padding: 12px;
+  height: 66px; /* 固定卡片高度，与空状态保持绝对一致，彻底解决高度突变 */
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
@@ -971,10 +972,32 @@ body.is-touch .todo-icon-btn[data-key]::after {
 }
 
 .hist-empty {
-  text-align: center;
-  padding: 20px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 66px; /* 匹配单张卡片高度 */
   color: rgba(255, 255, 255, 0.4);
   font-size: 13px;
+}
+
+/* ── 空状态样式 ── */
+.todo-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 66px 是单张卡片的标准高度，保持一致消灭 0/1 互相切换时的跳闪 */
+  height: 66px;
+  box-sizing: border-box;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 13px;
+  text-align: center;
+  /* 允许在插入DOM时自动产生淡入效果 */
+  animation: emptyFadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes emptyFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .todo-add {

@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 /* ══════════════════════════════════════════════
    番茄钟（Pomodoro Timer）
    ──────────────────────────────────────────────
@@ -433,11 +433,21 @@ function pomLoadTodos() {
     console.warn("读取番茄钟数据失败", e);
   }
 }
-function pomAnimateAdd(el) {
+function pomAnimateAdd(el, isFirst = false) {
   el.style.opacity = '0';
   requestAnimationFrame(() => {
     const h = el.offsetHeight;
     if (h === 0) { el.style.opacity = '1'; return; }
+    
+    if (isFirst) {
+      el.style.transition = 'opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
+      el.style.opacity = '1';
+      setTimeout(() => {
+        el.style.transition = '';
+      }, 260);
+      return;
+    }
+
     el.style.overflow = 'hidden';
     el.style.boxSizing = 'border-box';
     el.style.height = '0px';
@@ -472,41 +482,47 @@ function pomAnimateAdd(el) {
   });
 }
 
-function pomAnimateRemove(el, callback) {
+function pomAnimateRemove(el, callback, isLast = false) {
   const h = el.offsetHeight;
   el.style.boxSizing = 'border-box';
   el.style.height = h + 'px';
   el.style.overflow = 'hidden';
   void el.offsetHeight;
   
-  el.style.transition = 'height 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), padding 0.25s cubic-bezier(0.4, 0, 0.2, 1), margin 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-width 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
-  el.style.height = '0px';
-  el.style.paddingTop = '0px';
-  el.style.paddingBottom = '0px';
-  
-  // 针对最后一个元素的收缩特殊处理：如果不做处理，最后一项由于底部没有 nextSibling，只会高度变成 0，但前方的 gap(10px) 依然存在。
-  // 此时一旦节点被 remove() 删掉，10px 的 gap 瞬间消失会导致下方出现突兀的闪烁跳变。
-  // 解决方式：如果在中间就把 bottom 收缩 -10px，如果是最后一个就把 top 收缩 -10px
-  if (el.nextElementSibling) {
-    el.style.marginBottom = '-10px';
-    el.style.marginTop = '0px';
-  } else if (el.previousElementSibling) {
-    el.style.marginTop = '-10px';
-    el.style.marginBottom = '0px';
+  if (isLast) {
+    el.style.transition = 'opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
+    el.style.opacity = '0';
   } else {
-    el.style.marginTop = '0px';
-    el.style.marginBottom = '0px';
+    el.style.transition = 'height 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), padding 0.25s cubic-bezier(0.4, 0, 0.2, 1), margin 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-width 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
+    el.style.height = '0px';
+    el.style.paddingTop = '0px';
+    el.style.paddingBottom = '0px';
+    
+    // 针对最后一个元素的收缩特殊处理：如果不做处理，最后一项由于底部没有 nextSibling，只会高度变成 0，但前方的 gap(10px) 依然存在。
+    // 此时一旦节点被 remove() 删掉，10px 的 gap 瞬间消失会导致下方出现突兀的闪烁跳变。
+    // 解决方式：如果在中间就把 bottom 收缩 -10px，如果是最后一个就把 top 收缩 -10px
+    if (el.nextElementSibling) {
+      el.style.marginBottom = '-10px';
+      el.style.marginTop = '0px';
+    } else if (el.previousElementSibling) {
+      el.style.marginTop = '-10px';
+      el.style.marginBottom = '0px';
+    } else {
+      el.style.marginTop = '0px';
+      el.style.marginBottom = '0px';
+    }
+    
+    el.style.borderTopWidth = '0px';
+    el.style.borderBottomWidth = '0px';
+    el.style.opacity = '0';
   }
   
-  el.style.borderTopWidth = '0px';
-  el.style.borderBottomWidth = '0px';
-  el.style.opacity = '0';
   setTimeout(callback, 250);
 }
 function pomRenderTodos() {
   todoListEl.innerHTML = '';
   if (pomTodos.length === 0) {
-    todoListEl.innerHTML = `<div style="text-align:center; padding: 20px 0; color: rgba(255,255,255,0.4); font-size: 13px;">暂无待办，赶快添加一个吧！</div>`;
+    todoListEl.innerHTML = `<div class="todo-empty-state">暂无待办，赶快添加一个吧！</div>`;
     return;
   }
   pomTodos.forEach(item => {
@@ -620,7 +636,7 @@ function pomRenderTodos() {
         }
         pomSaveTodos();
         pomRenderTodos();
-      });
+      }, pomTodos.length === 1);
     });
     // 开始任务
     const playBtn = el.querySelector('.todo-play');
@@ -640,7 +656,7 @@ function pomRenderTodos() {
     });
     todoListEl.appendChild(el);
     if (item.isNew) {
-      pomAnimateAdd(el);
+      pomAnimateAdd(el, pomTodos.length === 1);
       delete item.isNew;
     }
   });
@@ -648,7 +664,7 @@ function pomRenderTodos() {
 function pomRenderInventory() {
   todoInvListEl.innerHTML = '';
   if (pomInventory.length === 0) {
-    todoInvListEl.innerHTML = `<div style="text-align:center; padding: 20px 0; color: rgba(255,255,255,0.4); font-size: 13px;">暂无活动清单，随时记录想做的事！</div>`;
+    todoInvListEl.innerHTML = `<div class="todo-empty-state">暂无活动清单，随时记录想做的事！</div>`;
     return;
   }
   pomInventory.forEach(item => {
@@ -732,11 +748,11 @@ function pomRenderInventory() {
         pomInventory = pomInventory.filter(x => x.id !== item.id);
         pomSaveTodos();
         pomRenderInventory();
-      });
+      }, pomInventory.length === 1);
     });
     todoInvListEl.appendChild(el);
     if (item.isNew) {
-      pomAnimateAdd(el);
+      pomAnimateAdd(el, pomInventory.length === 1);
       delete item.isNew;
     }
   });
