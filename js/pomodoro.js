@@ -164,11 +164,43 @@ function pomSystemNotify(msg) {
 }
 // ── 通知横幅 ──────────────────────────────────
 let pomNotifTimer = null;
+let pomNotifWidthTimer = null;
 function pomNotify(msg, playSoundAndSys = false) {
-  pomNotifEl.textContent = msg;
-  pomNotifEl.classList.add('visible');
+  if (pomNotifEl.classList.contains('visible') && pomNotifEl.textContent !== msg) {
+    // 若通知横幅已经处于显示状态，计算自适应宽度并执行过渡动画
+    const oldWidth = pomNotifEl.offsetWidth;
+    
+    // 暂时关闭过渡以换取新宽度
+    pomNotifEl.style.transition = 'none';
+    pomNotifEl.style.width = 'auto';
+    pomNotifEl.textContent = msg;
+    const newWidth = pomNotifEl.offsetWidth;
+    
+    // 强制先使用旧宽度渲染
+    pomNotifEl.style.width = oldWidth + 'px';
+    void pomNotifEl.offsetWidth; // 触发重绘
+    
+    // 恢复过渡并设定新宽度
+    pomNotifEl.style.transition = '';
+    pomNotifEl.style.width = newWidth + 'px';
+    
+    // 动画结束后解除定宽，回归自适应
+    clearTimeout(pomNotifWidthTimer);
+    pomNotifWidthTimer = setTimeout(() => {
+      pomNotifEl.style.transition = 'none';
+      pomNotifEl.style.width = 'auto';
+      void pomNotifEl.offsetWidth;
+      pomNotifEl.style.transition = '';
+    }, 350);
+  } else {
+    pomNotifEl.style.width = 'auto';
+    pomNotifEl.textContent = msg;
+    pomNotifEl.classList.add('visible');
+  }
+
   clearTimeout(pomNotifTimer);
   pomNotifTimer = setTimeout(() => pomNotifEl.classList.remove('visible'), 3500);
+
   if (playSoundAndSys) {
     pomPlayChime();
     pomSystemNotify(msg);
