@@ -95,6 +95,8 @@ function handleKeyDown(e) {
     case 'R':          e.preventDefault(); if (window._pomKeyR)   window._pomKeyR();   break;
     case 'l':
     case 'L':          e.preventDefault(); if (window._pomKeyL)   window._pomKeyL();   break;
+    case "'":          e.preventDefault(); if (window._pomKeyInt) window._pomKeyInt(); break;
+    case '-':          e.preventDefault(); if (window._pomKeyExt) window._pomKeyExt(); break;
     case 'Escape':     e.preventDefault(); if (window._pomKeyEsc) window._pomKeyEsc(); break;
   }
 }

@@ -373,6 +373,118 @@ body.is-touch .pom-action-btn::after {
   color: rgba(255, 130, 130, 0.90);
 }
 
+/* ── 中断记录栏 ── */
+#pom-interrupt-bar {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  max-height: 0;
+  padding: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: all 0.35s cubic-bezier(0.2, 1.15, 0.4, 1);
+  pointer-events: none;
+  margin-top: 0;
+}
+
+#pom-panel.running #pom-interrupt-bar {
+  max-height: 48px;
+  opacity: 1;
+  margin-top: 4px;
+  padding-top: 4px;
+  pointer-events: auto;
+  overflow: visible;
+}
+
+/* 针对非专注阶段隐藏（休息期间无需记录中断） */
+#pom-panel.running.break-phase #pom-interrupt-bar {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+  pointer-events: none;
+}
+
+.pom-int-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 36px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(200, 210, 228, 0.9);
+  font-size: 13px;
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+
+.pom-int-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: translateY(-2px);
+}
+
+.pom-int-btn:active {
+  transform: scale(0.92);
+  transition-duration: 0.08s;
+}
+
+.pom-int-badge {
+  background: rgba(255, 112, 67, 0.2);
+  border: 1px solid rgba(255, 112, 67, 0.3);
+  color: rgba(255, 150, 100, 0.95);
+  border-radius: 10px;
+  padding: 1px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-left: 2px;
+  font-variant-numeric: tabular-nums;
+  animation: pom-badge-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes pom-badge-pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* 中断按钮快捷键提示 */
+body.is-touch .pom-int-btn::after {
+  display: none;
+}
+
+.pom-int-btn::after {
+  content: attr(data-key);
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%) translateY(5px);
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(20, 24, 32, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(175, 185, 210, 0.85);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.pom-int-btn:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
 /* ── 阶段切换通知横幅 ── */
 #pom-notif {
   position: fixed;
@@ -921,6 +1033,20 @@ body.is-touch .todo-icon-btn[data-key]::after {
 .todo-poms {
   font-size: 11px;
   letter-spacing: 2px;
+}
+
+.todo-interrupts {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.todo-interrupts span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .todo-play {

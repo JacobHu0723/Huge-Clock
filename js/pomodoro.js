@@ -24,6 +24,8 @@ let pomRounds   = 0;       // 当前大轮内已完成的专注次数
 let pomInterval = null;
 let pomTargetSessions = 4;   // 预计需要的番茄数（默认 4）
 let pomTotalFocusDone = 0;   // 当前任务已完成的专注次数
+let pomSessionIntInterrupts = 0; // 当前未使用待办的内部中断
+let pomSessionExtInterrupts = 0; // 当前未使用待办的外部中断
 // ── 今日待办 状态 ────────────────────────────
 let pomTodos = [];
 let pomInventory = []; // 活动清单
@@ -46,6 +48,10 @@ const pomSessDecEl   = document.getElementById('pom-sess-dec');
 const pomSessIncEl   = document.getElementById('pom-sess-inc');
 const pomSessCountEl  = document.getElementById('pom-sess-count');
 const pomToggleIconEl = document.getElementById('pom-toggle-icon');
+const pomBtnInt       = document.getElementById('pom-btn-int-interrupt');
+const pomBtnExt       = document.getElementById('pom-btn-ext-interrupt');
+const pomIntBadge     = document.getElementById('pom-int-badge');
+const pomExtBadge     = document.getElementById('pom-ext-badge');
 const todoPanelEl   = document.getElementById('pom-todo-panel');
 const todoDropdown  = document.getElementById('todo-view-dropdown');
 const todoTrigger   = document.getElementById('todo-view-trigger');
@@ -101,6 +107,28 @@ function pomRender() {
   pomDotsEl.innerHTML = dotsHTML;
   // 同步步进器显示
   pomSessCountEl.textContent = `${pomTargetSessions}`;
+
+  // 同步阶段样式（用于隐藏中断记录栏）
+  if (pomPhaseIdx !== 0) {
+    pomPanelEl.classList.add('break-phase');
+  } else {
+    pomPanelEl.classList.remove('break-phase');
+  }
+
+  // 同步中断记录
+  let intTarget = pomSessionIntInterrupts;
+  let extTarget = pomSessionExtInterrupts;
+  if (pomCurrentTodoId) {
+    const t = pomTodos.find(x => x.id === pomCurrentTodoId);
+    if (t) {
+      intTarget = t.intInterrupts || 0;
+      extTarget = t.extInterrupts || 0;
+    }
+  }
+  pomIntBadge.textContent = intTarget;
+  pomIntBadge.style.display = intTarget > 0 ? 'inline-block' : 'none';
+  pomExtBadge.textContent = extTarget;
+  pomExtBadge.style.display = extTarget > 0 ? 'inline-block' : 'none';
 }
 // ── 系统提示音 ────────────────────────────────
 function pomPlayChime() {
@@ -285,6 +313,8 @@ function pomOnPhaseEnd() {
       pomTotalFocusDone = 0;
       pomRounds         = 0;
       pomCurrentTodoId  = null;
+      pomSessionIntInterrupts = 0;
+      pomSessionExtInterrupts = 0;
       pomRender();
       pomRenderTodos();
       pomPauseTimer();           // 同时解锁输入框
@@ -324,6 +354,28 @@ function pomKeyR() {
   if (!pomVisible) return;
   pomPauseTimer();
   pomTimeLeft = POM_PHASES[pomPhaseIdx].duration;
+  let clearedInterrupts = false;
+  
+  if (pomCurrentTodoId) {
+    const t = pomTodos.find(x => x.id === pomCurrentTodoId);
+    if (t) {
+      if (t.intInterrupts > 0 || t.extInterrupts > 0) clearedInterrupts = true;
+      t.intInterrupts = 0;
+      t.extInterrupts = 0;
+      pomSaveTodos();
+      if(pomViewMode === 'today') pomRenderTodos();
+    }
+  } else {
+    if (pomSessionIntInterrupts > 0 || pomSessionExtInterrupts > 0) clearedInterrupts = true;
+    pomSessionIntInterrupts = 0;
+    pomSessionExtInterrupts = 0;
+  }
+  
+  if (clearedInterrupts) {
+    pomNotify('🔄 计时与中断数已重置', false);
+  } else {
+    pomNotify('🔄 计时已重置', false);
+  }
   pomRender();
 }
 // Esc：关闭面板
@@ -334,10 +386,46 @@ function pomKeyEsc() {
     pomHide();
   }
 }
+
+// 记录内部中断
+function pomKeyInt() {
+  if (!pomRunning || pomPhaseIdx !== 0) return; // 只能在专注期间记录
+  if (pomCurrentTodoId) {
+    const t = pomTodos.find(x => x.id === pomCurrentTodoId);
+    if (t) {
+      t.intInterrupts = (t.intInterrupts || 0) + 1;
+      pomSaveTodos();
+      if(pomViewMode === 'today') pomRenderTodos();
+    }
+  } else {
+    pomSessionIntInterrupts++;
+  }
+  pomRender();
+}
+
+// 记录外部中断
+function pomKeyExt() {
+  if (!pomRunning || pomPhaseIdx !== 0) return; // 只能在专注期间记录
+  if (pomCurrentTodoId) {
+    const t = pomTodos.find(x => x.id === pomCurrentTodoId);
+    if (t) {
+      t.extInterrupts = (t.extInterrupts || 0) + 1;
+      pomSaveTodos();
+      if(pomViewMode === 'today') pomRenderTodos();
+    }
+  } else {
+    pomSessionExtInterrupts++;
+  }
+  pomRender();
+}
+
 // 全局导出
 window._pomKeyP   = pomKeyP;
 window._pomKeyR   = pomKeyR;
-window._pomKeyEsc = pomKeyEsc;window._pomKeyL   = pomKeyL;
+window._pomKeyEsc = pomKeyEsc;
+window._pomKeyL   = pomKeyL;
+window._pomKeyInt = pomKeyInt;
+window._pomKeyExt = pomKeyExt;
 // ── 事件绑定 ──────────────────────────────────
 // 悬浮按钮点击：仅切换面板显示/隐藏，不暂停/开始
 pomFabEl.addEventListener('click', () => {
@@ -385,6 +473,14 @@ document.getElementById('pom-btn-reset').addEventListener('click', e => {
 document.getElementById('pom-btn-close').addEventListener('click', e => {
   e.stopPropagation();
   pomKeyEsc();
+});
+pomBtnInt.addEventListener('click', e => {
+  e.stopPropagation();
+  pomKeyInt();
+});
+pomBtnExt.addEventListener('click', e => {
+  e.stopPropagation();
+  pomKeyExt();
 });
 // ── 初始化渲染 ────────────────────────────────
 pomRender();
@@ -538,8 +634,20 @@ function pomRenderTodos() {
     for (let i = item.est; i < item.done; i++) {
         poms += '🍅';
     }
+
+    // 生成中断统计 HTML
+    let interruptsHtml = '';
+    const intCount = item.intInterrupts || 0;
+    const extCount = item.extInterrupts || 0;
+    if (intCount > 0 || extCount > 0) {
+      interruptsHtml = `<div class="todo-interrupts" style="margin-left: 10px; margin-top: 0;">`;
+      if (intCount > 0) interruptsHtml += `<span title="内部中断: ${intCount}次">💭 ${intCount}</span>`;
+      if (extCount > 0) interruptsHtml += `<span title="外部中断: ${extCount}次">💬 ${extCount}</span>`;
+      interruptsHtml += `</div>`;
+    }
+
     el.innerHTML = `
-      <div class="todo-main-row"><input type="checkbox" class="todo-chk" ${item.completed ? 'checked' : ''}><div class="todo-info"><div class="todo-name" title="${item.text}">${item.text}</div><div class="todo-poms">${poms}</div></div><button class="todo-play" title="应用此待办到番茄钟">▶</button><button class="todo-del" title="删除此待办">✕</button></div>`;
+      <div class="todo-main-row"><input type="checkbox" class="todo-chk" ${item.completed ? 'checked' : ''}><div class="todo-info"><div class="todo-name" title="${item.text}">${item.text}</div><div style="display:flex; align-items:center;"><div class="todo-poms">${poms}</div>${interruptsHtml}</div></div><button class="todo-play" title="应用此待办到番茄钟">▶</button><button class="todo-del" title="删除此待办">✕</button></div>`;
 
     // 允许点击预计番茄图标区域来修改番茄数
     const pomsContainer = el.querySelector('.todo-poms');
@@ -619,10 +727,12 @@ function pomRenderTodos() {
         }
       }
       pomSaveTodos();
-      if (item.completed) {
-        el.classList.add('completed');
+      // 重新渲染以更新中断标记的位置
+      if(pomViewMode === 'today') {
+        pomRenderTodos();
       } else {
-        el.classList.remove('completed');
+        if (item.completed) el.classList.add('completed');
+        else el.classList.remove('completed');
       }
       pomRenderInventory();
     });
@@ -803,7 +913,18 @@ function pomRenderHistory() {
       for (let i = item.est; i < item.done; i++) {
           poms += '🍅';
       }
-      el.innerHTML = `<div class="todo-main-row"><div class="todo-info" style="padding-left: 8px;"><div class="todo-name" title="${item.text}">${item.text}</div><div class="todo-poms">${poms}</div></div></div>`;
+
+      let interruptsHtml = '';
+      const intCount = item.intInterrupts || 0;
+      const extCount = item.extInterrupts || 0;
+      if (intCount > 0 || extCount > 0) {
+        interruptsHtml = `<div class="todo-interrupts" style="margin-left: 10px; margin-top: 0;">`;
+        if (intCount > 0) interruptsHtml += `<span title="内部中断: ${intCount}次">💭 ${intCount}</span>`;
+        if (extCount > 0) interruptsHtml += `<span title="外部中断: ${extCount}次">💬 ${extCount}</span>`;
+        interruptsHtml += `</div>`;
+      }
+
+      el.innerHTML = `<div class="todo-main-row"><div class="todo-info" style="padding-left: 8px;"><div class="todo-name" title="${item.text}">${item.text}</div><div style="display:flex; align-items:center;"><div class="todo-poms">${poms}</div>${interruptsHtml}</div></div></div>`;
         todoHistListEl.appendChild(el);
     });
   });
