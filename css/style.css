@@ -1,4 +1,4 @@
-/* ── 页面基础 ── */
+﻿/* ── 页面基础 ── */
 html,
 body {
   height: 100%;
@@ -15,17 +15,13 @@ body {
   left: 0;
   right: 0;
   font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
-
   /* 等宽数字：防止数字宽度差异导致时钟抖动 */
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
-
   /* 禁止双击选中文字 */
   user-select: none;
-
   /* 屏蔽触摸点击高亮 */
   -webkit-tap-highlight-color: transparent;
-
   cursor: pointer;
 }
 
@@ -35,7 +31,6 @@ body {
   top: 92px;
   left: 50%;
   transform: translateX(-50%) translateY(-14px);
-
   /* 统一高度与内边距 */
   display: flex;
   align-items: center;
@@ -43,9 +38,7 @@ body {
   height: 46px;
   padding: 0 24px;
   box-sizing: border-box;
-
   border-radius: 50px;
-
   /* 液态玻璃效果 */
   background: rgba(255, 255, 255, 0.10);
   backdrop-filter: blur(28px) saturate(200%) brightness(1.1);
@@ -53,19 +46,16 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.20);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.40),
-    inset 0  1.5px 0 rgba(255, 255, 255, 0.18),
-    inset 0 -1px   0 rgba(0, 0, 0, 0.12);
-
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.12);
   font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
   white-space: nowrap;
-
   opacity: 0;
   pointer-events: none;
   user-select: none;
   z-index: 9999;
-
   transition:
-    opacity   0.28s ease,
+    opacity 0.28s ease,
     transform 0.40s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -86,7 +76,6 @@ body {
 /* ══════════════════════════════════════════════
    番茄钟
    ══════════════════════════════════════════════ */
-
 /* ── 悬浮按钮（右下角 🍅）── */
 #pom-fab {
   position: fixed;
@@ -100,20 +89,29 @@ body {
   z-index: 8500;
   -webkit-tap-highlight-color: transparent;
   transition:
-    opacity   0.3s ease,
+    opacity 0.3s ease,
     transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
 #pom-fab:hover {
   opacity: 0.72;
   transform: scale(1.25);
 }
+
 #pom-fab.running {
   opacity: 0.55;
   animation: pom-fab-glow 2.4s ease-in-out infinite;
 }
 @keyframes pom-fab-glow {
-  0%, 100% { transform: scale(1);    opacity: 0.55; }
-  50%       { transform: scale(1.1); opacity: 0.85; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.85;
+  }
 }
 
 /* ── 主面板（底部居中，左右双栏布局）── */
@@ -122,7 +120,6 @@ body {
   bottom: 32px;
   left: 50%;
   right: auto;
-
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -131,29 +128,27 @@ body {
   width: min(276px, calc(100vw - 36px));
   box-sizing: border-box;
   border-radius: 24px;
-
   background: rgba(255, 255, 255, 0.07);
   backdrop-filter: blur(32px) saturate(200%) brightness(1.08);
   -webkit-backdrop-filter: blur(32px) saturate(200%) brightness(1.08);
   border: 1px solid rgba(255, 255, 255, 0.13);
   box-shadow:
     0 12px 40px rgba(0, 0, 0, 0.55),
-    inset 0  1.5px 0 rgba(255, 255, 255, 0.15),
-    inset 0 -1px   0 rgba(0, 0, 0, 0.15);
-
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15);
   opacity: 0;
   pointer-events: none;
   user-select: none;
   z-index: 9000;
-
   /* 初始/收起状态：从居中位置平移到视口右下角的番茄按钮处，并缩小 */
   transform: translateX(-50%) translate(calc(50vw - 41px), 45px) scale(0.05);
   transform-origin: center center;
-
   transition:
-    opacity   0.35s ease,
-    transform 0.45s cubic-bezier(0.2, 1.15, 0.4, 1); /* 减轻回弹力度 */
+    opacity 0.35s ease,
+    transform 0.45s cubic-bezier(0.2, 1.15, 0.4, 1);
+  /* 减轻回弹力度 */
 }
+
 #pom-panel.visible {
   opacity: 1;
   pointer-events: auto;
@@ -180,6 +175,7 @@ body {
   width: 100%;
   transition: margin-top 0.3s ease;
 }
+
 /* 运行时输入框消失，顺势上移圆环，填补空白 */
 #pom-panel.running #pom-main-row {
   margin-top: -6px;
@@ -202,18 +198,22 @@ body {
   height: 84px;
   flex-shrink: 0;
   margin-left: 8px;
-  margin-top: -8px; /* 视觉对齐：与右侧圆点保持同一水平线 */
+  margin-top: -8px;
+  /* 视觉对齐：与右侧圆点保持同一水平线 */
 }
+
 #pom-ring-wrap svg {
   width: 84px;
   height: 84px;
   display: block;
 }
+
 #pom-ring-bg {
   fill: none;
   stroke: rgba(255, 255, 255, 0.07);
   stroke-width: 8;
 }
+
 #pom-ring-fg {
   fill: none;
   stroke-width: 8;
@@ -223,7 +223,7 @@ body {
   transform: rotate(-90deg);
   transition:
     stroke-dashoffset 0.9s cubic-bezier(0.4, 0, 0.2, 1),
-    stroke            0.45s ease;
+    stroke 0.45s ease;
 }
 
 /* ── 阶段图标（圆环中心）── */
@@ -235,7 +235,8 @@ body {
   justify-content: center;
   font-size: 26px;
   line-height: 1;
-  transform: translateY(-2px); /* 补偿 emoji 字形自带的下沉 baseline */
+  transform: translateY(-2px);
+  /* 补偿 emoji 字形自带的下沉 baseline */
   pointer-events: none;
 }
 
@@ -244,6 +245,7 @@ body {
   display: flex;
   gap: 8px;
 }
+
 .pom-dot {
   width: 8px;
   height: 8px;
@@ -252,12 +254,20 @@ body {
   border: 1.5px solid rgba(255, 255, 255, 0.20);
   transition: background 0.35s ease, border-color 0.35s ease;
 }
+
 .pom-dot.active {
   animation: pom-dot-pulse 1.6s ease-in-out infinite;
 }
 @keyframes pom-dot-pulse {
-  0%, 100% { transform: scale(1);    opacity: 1;    }
-  50%       { transform: scale(0.75); opacity: 0.45; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.75);
+    opacity: 0.45;
+  }
 }
 
 /* ── 操作按钮栏 ── */
@@ -268,6 +278,7 @@ body {
   width: 100%;
   margin-top: 2px;
 }
+
 .pom-action-btn {
   position: relative;
   width: 42px;
@@ -286,24 +297,28 @@ body {
   justify-content: center;
   flex-shrink: 0;
   transition:
-    background   0.2s ease,
+    background 0.2s ease,
     border-color 0.2s ease,
-    transform    0.15s ease,
-    color        0.2s ease;
+    transform 0.15s ease,
+    color 0.2s ease;
 }
+
 .pom-action-btn:hover {
   background: rgba(255, 255, 255, 0.11);
   border-color: rgba(255, 255, 255, 0.20);
   transform: translateY(-2px);
 }
+
 .pom-action-btn:active {
   transform: scale(0.88);
   transition-duration: 0.08s;
 }
-/* 播放图标单独缩小（暂停/重置/关闭大小刚好） */
+
+/* 播放图标单独缩小（暂停/重置/关闭大小刚好）*/
 #pom-toggle-icon {
   font-size: 11px;
 }
+
 /* 暂停图标：放大并加粗描边，与其他图标视觉等重 */
 #pom-panel.running #pom-toggle-icon {
   font-size: 14px;
@@ -311,10 +326,11 @@ body {
 }
 
 /* hover 时从 data-key 属性读取快捷键，气泡浮于按钮上方 */
-/* body.is-touch 时完全不显示（触摸 hover 残留问题）*/
+/* body.is-touch 时完全不显示（触摸屏 hover 残留问题）*/
 body.is-touch .pom-action-btn::after {
   display: none;
 }
+
 .pom-action-btn::after {
   content: attr(data-key);
   position: absolute;
@@ -334,20 +350,23 @@ body.is-touch .pom-action-btn::after {
   pointer-events: none;
   opacity: 0;
   transition:
-    opacity   0.18s ease,
+    opacity 0.18s ease,
     transform 0.18s ease;
 }
+
 .pom-action-btn:hover::after {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
 /* 开始/暂停按钮运行时橙色高亮 */
 #pom-panel.running #pom-btn-toggle {
   border-color: rgba(255, 112, 67, 0.40);
   background: rgba(255, 112, 67, 0.10);
   color: rgba(255, 150, 100, 0.95);
 }
-/* 关闭按钮 hover 时微红 */
+
+/* 关闭按钮 hover 时微调 */
 #pom-btn-close:hover {
   border-color: rgba(255, 80, 80, 0.28);
   background: rgba(255, 80, 80, 0.08);
@@ -360,7 +379,6 @@ body.is-touch .pom-action-btn::after {
   top: 92px;
   left: 50%;
   transform: translateX(-50%) translateY(-14px);
-
   /* 统一高度与内边距 */
   display: flex;
   align-items: center;
@@ -368,41 +386,39 @@ body.is-touch .pom-action-btn::after {
   height: 46px;
   padding: 0 24px;
   box-sizing: border-box;
-
   border-radius: 50px;
-
   background: rgba(255, 255, 255, 0.10);
   backdrop-filter: blur(28px) saturate(200%) brightness(1.1);
   -webkit-backdrop-filter: blur(28px) saturate(200%) brightness(1.1);
   border: 1px solid rgba(255, 255, 255, 0.18);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.42),
-    inset 0  1.5px 0 rgba(255, 255, 255, 0.18),
-    inset 0 -1px   0 rgba(0, 0, 0, 0.12);
-
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.12);
   font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
   font-size: 15px;
   font-weight: 600;
   color: rgba(218, 226, 238, 0.92);
   white-space: nowrap;
-
   opacity: 0;
   pointer-events: none;
   user-select: none;
   z-index: 9997;
-  
   /* 当同时出现 volume-hud 时向下偏移避免重叠，这里的过渡效果会包含 top 属性 */
   transition:
-    opacity   0.28s ease,
-    top       0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.28s ease,
+    top 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
     transform 0.40s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
 #pom-notif.visible {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
 body.vol-hud-active #pom-notif {
-  top: 154px; /* 当音量弹窗也显现时，番茄通知会被自动挤到下一排 */
+  top: 154px;
+  /* 当音量弹窗也显现时，番茄通知会被自动挤到下一行 */
 }
 
 /* ── 任务名称输入框 ── */
@@ -423,20 +439,23 @@ body.vol-hud-active #pom-notif {
   max-height: 40px;
   overflow: hidden;
   transition:
-    background    0.25s ease,
-    border-color  0.25s ease,
-    max-height    0.35s ease,
-    opacity       0.3s  ease,
-    padding-top   0.35s ease,
+    background 0.25s ease,
+    border-color 0.25s ease,
+    max-height 0.35s ease,
+    opacity 0.3s ease,
+    padding-top 0.35s ease,
     padding-bottom 0.35s ease;
 }
+
 #pom-task-input::placeholder {
   color: rgba(175, 185, 205, 0.38);
 }
+
 #pom-task-input:focus:not([readonly]) {
   background: rgba(255, 255, 255, 0.12);
   border-color: rgba(255, 112, 67, 0.55);
 }
+
 /* 运行时变为只读标签样式 */
 #pom-task-input[readonly] {
   background: transparent;
@@ -450,6 +469,7 @@ body.vol-hud-active #pom-notif {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 /* 运行时若无任务名则平滑折叠输入框（不可用 display:none，无法过渡）*/
 #pom-panel.running #pom-task-input:placeholder-shown {
   max-height: 0;
@@ -466,11 +486,13 @@ body.vol-hud-active #pom-notif {
   gap: 8px;
   transition: opacity 0.3s ease;
 }
+
 /* 运行时变暗但保持可见（让用户看到目标，不可操作）*/
 #pom-panel.running #pom-session-stepper {
   opacity: 0.35;
   pointer-events: none;
 }
+
 #pom-sess-dec,
 #pom-sess-inc {
   width: 22px;
@@ -490,17 +512,20 @@ body.vol-hud-active #pom-notif {
   -webkit-tap-highlight-color: transparent;
   transition:
     background 0.2s ease,
-    transform  0.15s ease;
+    transform 0.15s ease;
 }
+
 #pom-sess-dec:hover,
 #pom-sess-inc:hover {
   background: rgba(255, 255, 255, 0.16);
   transform: scale(1.12);
 }
+
 #pom-sess-dec:active,
 #pom-sess-inc:active {
   transform: scale(0.92);
 }
+
 #pom-sess-count {
   font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
   font-size: 12px;
@@ -528,11 +553,9 @@ body.vol-hud-active #pom-notif {
   /* 调整中心位置：位于屏幕中央偏右，让它展开时比较自然 */
   top: 50%;
   right: 32px;
-  
-  /* 初始/收起状态：从居中偏右的位置精确定位到视口底部的番茄钟 📝 按钮处，并缩小 */
+  /* 初始/收起状态：从居中偏右的位置精确定位到视口底部的番茄钟📝 按钮处，并缩小 */
   transform: translate(calc(-50vw + 122px), calc(50vh - 45px)) scale(0.05);
   transform-origin: center bottom;
-
   width: 340px;
   max-width: calc(100vw - 32px);
   max-height: 80vh;
@@ -546,10 +569,10 @@ body.vol-hud-active #pom-notif {
   backdrop-filter: blur(32px) saturate(200%) brightness(1.08);
   -webkit-backdrop-filter: blur(32px) saturate(200%) brightness(1.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.5), inset 0 1.5px 0 rgba(255,255,255,0.15);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1.5px 0 rgba(255, 255, 255, 0.15);
   opacity: 0;
   pointer-events: none;
-  /* 调整 z-index 确保在番茄钟主面板(9000)之上，避免动画被遮挡 */
+  /* 调整 z-index 确保在番茄钟主面板 (z-index: 9000)之上，避免动画被遮挡 */
   z-index: 9005;
   transition: opacity 0.35s ease, transform 0.45s cubic-bezier(0.2, 1.15, 0.4, 1);
   font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
@@ -574,14 +597,22 @@ body.vol-hud-active #pom-notif {
 #pom-todo-panel.from-side.visible {
   transform: translateY(-50%) translateX(0) scale(1);
 }
-
 @keyframes listFadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+
 .list-fade-in {
   animation: listFadeIn 0.35s cubic-bezier(0.2, 1, 0.4, 1) forwards;
 }
+
 .todo-header {
   display: flex;
   justify-content: space-between;
@@ -589,12 +620,150 @@ body.vol-hud-active #pom-notif {
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
+
+/* 自定义下拉菜单容器 */
+.custom-dropdown {
+  position: relative;
+  display: inline-block;
+  min-width: 140px;
+}
+
+/* 触发按钮 */
+.dropdown-trigger {
+  width: 100%;
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+  background: rgba(255, 255, 255, 0.08);
+  /* 提亮点，质感更好 */
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: rgba(218, 226, 238, 0.95);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* 箭头推到右边 */
+  gap: 8px;
+}
+
+.dropdown-trigger:hover,
+.custom-dropdown.open .dropdown-trigger {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dropdown-trigger:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.dropdown-arrow {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.custom-dropdown.open .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+/* 下拉面板 */
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 100%;
+  /* 和 Trigger 同宽 */
+  min-width: max-content;
+  /* 防文字换行被截断 */
+  box-sizing: border-box;
+  background: rgba(26, 26, 28, 0.65);
+  /* 降低透明度让底层文字不易干扰 */
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(40px) saturate(200%);
+  /* 增加模糊度，提升清晰度 */
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  z-index: 100;
+  /* 动画初始状态 */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px) scale(0.95);
+  transform-origin: top center;
+  transition: all 0.25s cubic-bezier(0.2, 1.15, 0.4, 1);
+  pointer-events: none;
+}
+
+/*打开时的下拉面板*/
+.custom-dropdown.open .dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+/* 滑动高亮背景（水珠粘连效果） */
+.dropdown-highlight {
+  position: absolute;
+  top: 0;
+  left: 6px;
+  right: 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  /* 类似iOS的弹性流体过渡效果 */
+  transition: transform 0.3s cubic-bezier(0.25, 1, 0.3, 1), height 0.3s cubic-bezier(0.25, 1, 0.3, 1), opacity 0.2s ease;
+}
+
+.dropdown-item {
+  position: relative;
+  z-index: 1;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(218, 226, 238, 0.85);
+  cursor: pointer;
+  border-radius: 8px;
+  /* 圆角加大一些匹配容器 */
+  transition: color 0.2s cubic-bezier(0.4, 0, 0.2, 1), font-weight 0.2s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  background: transparent !important;
+  /* 背景由 highlight 接管 */
+  box-shadow: none !important;
+}
+
+.dropdown-item:hover,
+.dropdown-item.active {
+  color: #fff;
+}
+
+.dropdown-item.active {
+  font-weight: 600;
+}
+
 .todo-title {
   font-size: 16px;
   font-weight: 600;
   letter-spacing: 0.05em;
   color: rgba(218, 226, 238, 0.95);
 }
+
 .todo-icon-btn {
   background: none;
   border: none;
@@ -609,16 +778,20 @@ body.vol-hud-active #pom-notif {
   justify-content: center;
   transition: background 0.2s, color 0.2s;
 }
+
 .todo-icon-btn:hover {
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
 }
+
 .todo-icon-btn[data-key] {
   position: relative;
 }
+
 body.is-touch .todo-icon-btn[data-key]::after {
   display: none;
 }
+
 .todo-icon-btn[data-key]::after {
   content: attr(data-key);
   position: absolute;
@@ -638,14 +811,16 @@ body.is-touch .todo-icon-btn[data-key]::after {
   pointer-events: none;
   opacity: 0;
   transition:
-    opacity   0.18s ease,
+    opacity 0.18s ease,
     transform 0.18s ease;
   z-index: 100;
 }
+
 .todo-icon-btn[data-key]:hover::after {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
 .todo-list {
   flex: 1;
   overflow-y: auto;
@@ -654,13 +829,16 @@ body.is-touch .todo-icon-btn[data-key]::after {
   gap: 10px;
   padding-right: 4px;
 }
+
 .todo-list::-webkit-scrollbar {
   width: 4px;
 }
+
 .todo-list::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 2px;
 }
+
 .todo-item {
   display: flex;
   align-items: center;
@@ -672,19 +850,25 @@ body.is-touch .todo-icon-btn[data-key]::after {
   transition: background 0.2s, border-color 0.2s;
   cursor: default;
 }
+
 .todo-item:hover {
   background: rgba(255, 255, 255, 0.08);
 }
+
 .todo-item.active {
   background: rgba(255, 112, 67, 0.12);
   border-color: rgba(255, 112, 67, 0.35);
 }
+
 .todo-item.completed {
   opacity: 0.55;
+  transition: opacity 0.3s ease;
 }
-.todo-item.completed .todo-name {
-  text-decoration: line-through;
+
+.todo-item.completed .todo-name::after {
+  width: 100%;
 }
+
 .todo-chk {
   width: 18px;
   height: 18px;
@@ -692,6 +876,7 @@ body.is-touch .todo-icon-btn[data-key]::after {
   cursor: pointer;
   margin: 0;
 }
+
 .todo-info {
   flex: 1;
   display: flex;
@@ -699,17 +884,34 @@ body.is-touch .todo-icon-btn[data-key]::after {
   gap: 6px;
   overflow: hidden;
 }
+
 .todo-name {
   font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
 }
+
+.todo-name::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 0;
+  height: 1.5px;
+  background: currentColor;
+  transition: width 0.3s cubic-bezier(0.25, 1, 0.3, 1);
+}
+
 .todo-poms {
   font-size: 11px;
   letter-spacing: 2px;
 }
+
 .todo-play {
   background: none;
   border: none;
@@ -723,10 +925,12 @@ body.is-touch .todo-icon-btn[data-key]::after {
   align-items: center;
   justify-content: center;
 }
+
 .todo-play:hover {
   color: #ff7043;
   transform: scale(1.15);
 }
+
 .todo-del {
   background: none;
   border: none;
@@ -740,10 +944,12 @@ body.is-touch .todo-icon-btn[data-key]::after {
   align-items: center;
   justify-content: center;
 }
+
 .todo-del:hover {
   color: rgba(255, 80, 80, 0.9);
   background: rgba(255, 0, 0, 0.1);
 }
+
 .hist-date {
   font-size: 13px;
   font-weight: 600;
@@ -753,12 +959,14 @@ body.is-touch .todo-icon-btn[data-key]::after {
   border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
   padding-bottom: 4px;
 }
+
 .hist-empty {
   text-align: center;
   padding: 20px 0;
-  color: rgba(255,255,255,0.4);
+  color: rgba(255, 255, 255, 0.4);
   font-size: 13px;
 }
+
 .todo-add {
   display: flex;
   flex-direction: column;
@@ -766,6 +974,7 @@ body.is-touch .todo-icon-btn[data-key]::after {
   padding-top: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
+
 #todo-input {
   width: 100%;
   box-sizing: border-box;
@@ -778,29 +987,37 @@ body.is-touch .todo-icon-btn[data-key]::after {
   outline: none;
   transition: border-color 0.2s, background 0.2s;
 }
+
 #todo-input:focus {
   border-color: rgba(255, 255, 255, 0.3);
   background: rgba(255, 255, 255, 0.1);
 }
-#todo-input::placeholder { color: rgba(255, 255, 255, 0.35); }
+
+#todo-input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
 .todo-add-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
+
 .todo-est-label {
   font-size: 13px;
   color: rgba(255, 255, 255, 0.6);
 }
+
 .todo-est-stepper {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(0,0,0,0.25);
+  background: rgba(0, 0, 0, 0.25);
   border-radius: 20px;
   padding: 4px 10px;
 }
+
 .todo-est-stepper button {
   background: none;
   border: none;
@@ -810,16 +1027,19 @@ body.is-touch .todo-icon-btn[data-key]::after {
   padding: 0 4px;
   font-size: 14px;
 }
+
 .todo-est-stepper button:hover {
   color: #ff7043;
 }
+
 #todo-est-val {
   font-size: 14px;
   font-weight: 700;
   min-width: 14px;
   text-align: center;
 }
-#todo-add-btn {
+
+.todo-add-btn {
   background: rgba(255, 112, 67, 0.85);
   border: none;
   border-radius: 10px;
@@ -830,11 +1050,13 @@ body.is-touch .todo-icon-btn[data-key]::after {
   cursor: pointer;
   transition: opacity 0.2s, transform 0.15s;
 }
-#todo-add-btn:hover {
+
+.todo-add-btn:hover {
   opacity: 1;
   transform: scale(1.05);
 }
-#todo-add-btn:active {
+
+.todo-add-btn:active {
   transform: scale(0.95);
 }
 @media (max-width: 600px) {
@@ -845,7 +1067,8 @@ body.is-touch .todo-icon-btn[data-key]::after {
     top: 50%;
     transform: translateY(-50%) scale(0.95);
   }
-  #pom-todo-panel.visible {
+
+#pom-todo-panel.visible {
     transform: translateY(-50%) scale(1);
   }
 }

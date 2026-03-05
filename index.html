@@ -77,17 +77,39 @@
   <!-- 番茄钟阶段切换通知 -->
   <div id="pom-notif" aria-live="polite"></div>
 
-  <!-- 今日待办清单面板 (Activity Inventory) -->
-  <div id="pom-todo-panel" role="dialog" aria-label="今日待办">
+  <!-- 今日待办/活动清单 面板 (Activity Inventory / To-Do) -->
+  <div id="pom-todo-panel" role="dialog" aria-label="待办事项">
     <div class="todo-header">
-      <div class="todo-title" id="todo-head-title">📝 今日待办</div>
+      <div class="todo-title-row" style="display: flex; gap: 8px; align-items: center;">
+        <!-- 自定义切换视图下拉菜单 -->
+        <div class="custom-dropdown" id="todo-view-dropdown">
+          <button class="dropdown-trigger" id="todo-view-trigger" aria-label="视图选择" type="button">
+            <span id="todo-view-text">📝 今日待办</span>
+            <svg class="dropdown-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 1L5 5L9 1" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="dropdown-menu" id="todo-view-menu">
+            <!-- 动态滑动的高亮光标 / 粘连流体效果 -->
+            <div class="dropdown-highlight" id="todo-view-highlight"></div>
+            <div class="dropdown-item active" data-value="today">📝 今日待办</div>
+            <div class="dropdown-item" data-value="inventory">📦 活动清单</div>
+            <div class="dropdown-item" data-value="history">🕒 历史记录</div>
+          </div>
+        </div>
+      </div>
       <div style="display: flex; gap: 8px;">
-        <button id="todo-hist-btn" class="todo-icon-btn" aria-label="历史记录" title="查看历史记录">🕒</button>
-        <button id="todo-close-btn" class="todo-icon-btn" data-key="Esc" aria-label="关闭待办">✕</button>
+        <button id="todo-close-btn" class="todo-icon-btn" data-key="Esc" aria-label="关闭面板">✕</button>
       </div>
     </div>
     
+    <!-- 今日待办列表 -->
     <div class="todo-list" id="todo-list">
+      <!-- 动态从 js 渲染 -->
+    </div>
+
+    <!-- 活动清单列表 -->
+    <div class="todo-list" id="todo-inv-list" style="display: none;">
       <!-- 动态从 js 渲染 -->
     </div>
 
@@ -96,16 +118,21 @@
       <!-- 动态从 js 渲染 -->
     </div>
     
+    <!-- 底部添加区 -->
     <div class="todo-add" id="todo-add-area">
-      <input type="text" id="todo-input" placeholder="添加新任务 (Enter)..." autocomplete="off">
-      <div class="todo-add-row">
+      <div style="display: flex; gap: 8px; width: 100%;">
+        <input type="text" id="todo-input" placeholder="添加新任务 (Enter)..." autocomplete="off" style="flex: 1;">
+        <!-- 给活动清单视图准备的极简添加按钮（隐藏状态） -->
+        <button id="todo-add-btn-simple" class="todo-add-btn" style="display: none; height: auto; padding: 0 16px;">添加</button>
+      </div>
+      <div class="todo-add-row" id="todo-est-row">
         <span class="todo-est-label">预计番茄数：</span>
         <div class="todo-est-stepper">
           <button id="todo-est-minus">−</button>
           <span id="todo-est-val">1</span>
           <button id="todo-est-plus">＋</button>
         </div>
-        <button id="todo-add-btn">添加</button>
+        <button id="todo-add-btn" class="todo-add-btn">添加</button>
       </div>
     </div>
   </div>
