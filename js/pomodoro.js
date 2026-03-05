@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 /* ══════════════════════════════════════════════
    番茄钟（Pomodoro Timer）
    ──────────────────────────────────────────────
@@ -477,7 +477,7 @@ document.getElementById('pom-btn-reset').addEventListener('click', e => {
 });
 document.getElementById('pom-btn-close').addEventListener('click', e => {
   e.stopPropagation();
-  pomKeyEsc();
+  pomHide();
 });
 pomBtnInt.addEventListener('click', e => {
   e.stopPropagation();
