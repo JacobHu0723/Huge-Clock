@@ -842,6 +842,7 @@ body.is-touch .todo-icon-btn[data-key]::after {
 }
 
 .todo-item {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 0;

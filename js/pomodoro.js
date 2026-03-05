@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 /* ══════════════════════════════════════════════
    番茄钟（Pomodoro Timer）
    ──────────────────────────────────────────────
@@ -433,6 +433,76 @@ function pomLoadTodos() {
     console.warn("读取番茄钟数据失败", e);
   }
 }
+function pomAnimateAdd(el) {
+  el.style.opacity = '0';
+  requestAnimationFrame(() => {
+    const h = el.offsetHeight;
+    if (h === 0) { el.style.opacity = '1'; return; }
+    el.style.overflow = 'hidden';
+    el.style.boxSizing = 'border-box';
+    el.style.height = '0px';
+    el.style.paddingTop = '0px';
+    el.style.paddingBottom = '0px';
+    
+    // 抵消 gap：当元素生成时，我们需要它顺畅地将 gap 撑开，所以给一个与 gap 抵消的负边距初始值
+    if (el.previousElementSibling) {
+      el.style.marginTop = '-10px';
+    } else if (el.nextElementSibling) {
+      el.style.marginBottom = '-10px';
+    } else {
+      el.style.marginTop = '0px';
+    }
+    
+    el.style.borderTopWidth = '0px';
+    el.style.borderBottomWidth = '0px';
+    void el.offsetHeight;
+    
+    el.style.transition = 'height 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), padding 0.25s cubic-bezier(0.4, 0, 0.2, 1), margin 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-width 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
+    el.style.opacity = '1';
+    el.style.height = h + 'px';
+    el.style.paddingTop = '';
+    el.style.paddingBottom = '';
+    el.style.marginTop = '';
+    el.style.marginBottom = '';
+    el.style.borderTopWidth = '';
+    el.style.borderBottomWidth = '';
+    setTimeout(() => {
+      el.style.height = ''; el.style.overflow = ''; el.style.transition = ''; el.style.boxSizing = '';
+    }, 260);
+  });
+}
+
+function pomAnimateRemove(el, callback) {
+  const h = el.offsetHeight;
+  el.style.boxSizing = 'border-box';
+  el.style.height = h + 'px';
+  el.style.overflow = 'hidden';
+  void el.offsetHeight;
+  
+  el.style.transition = 'height 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), padding 0.25s cubic-bezier(0.4, 0, 0.2, 1), margin 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-width 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
+  el.style.height = '0px';
+  el.style.paddingTop = '0px';
+  el.style.paddingBottom = '0px';
+  
+  // 针对最后一个元素的收缩特殊处理：如果不做处理，最后一项由于底部没有 nextSibling，只会高度变成 0，但前方的 gap(10px) 依然存在。
+  // 此时一旦节点被 remove() 删掉，10px 的 gap 瞬间消失会导致下方出现突兀的闪烁跳变。
+  // 解决方式：如果在中间就把 bottom 收缩 -10px，如果是最后一个就把 top 收缩 -10px
+  if (el.nextElementSibling) {
+    el.style.marginBottom = '-10px';
+    el.style.marginTop = '0px';
+  } else if (el.previousElementSibling) {
+    el.style.marginTop = '-10px';
+    el.style.marginBottom = '0px';
+  } else {
+    el.style.marginTop = '0px';
+    el.style.marginBottom = '0px';
+  }
+  
+  el.style.borderTopWidth = '0px';
+  el.style.borderBottomWidth = '0px';
+  el.style.opacity = '0';
+  setTimeout(callback, 250);
+}
 function pomRenderTodos() {
   todoListEl.innerHTML = '';
   if (pomTodos.length === 0) {
@@ -543,12 +613,14 @@ function pomRenderTodos() {
     // 绑定删除按钮
     const delBtn = el.querySelector('.todo-del');
     delBtn.addEventListener('click', () => {
-      pomTodos = pomTodos.filter(x => x.id !== item.id);
-      if (pomCurrentTodoId === item.id) {
-        pomCurrentTodoId = null;
-      }
-      pomSaveTodos();
-      pomRenderTodos();
+      pomAnimateRemove(el, () => {
+        pomTodos = pomTodos.filter(x => x.id !== item.id);
+        if (pomCurrentTodoId === item.id) {
+          pomCurrentTodoId = null;
+        }
+        pomSaveTodos();
+        pomRenderTodos();
+      });
     });
     // 开始任务
     const playBtn = el.querySelector('.todo-play');
@@ -567,6 +639,10 @@ function pomRenderTodos() {
       if (window.innerWidth <= 600) pomToggleTodoPanel(false);
     });
     todoListEl.appendChild(el);
+    if (item.isNew) {
+      pomAnimateAdd(el);
+      delete item.isNew;
+    }
   });
 }
 function pomRenderInventory() {
@@ -637,7 +713,7 @@ function pomRenderInventory() {
       confirmBtn.addEventListener('click', () => {
         let val = parseInt(inputEl.value) || 1;
         if (val < 1) val = 1;
-        const todoItem = { ...item, id: Date.now(), est: val };
+        const todoItem = { ...item, id: Date.now(), est: val, isNew: true };
         todoItem.inventoryOriginalId = item.id;
         item.todayInstances = item.todayInstances || [];
         item.todayInstances.push(todoItem.id);
@@ -652,11 +728,17 @@ function pomRenderInventory() {
     // 删除
     const delBtn = el.querySelector('.todo-del');
     delBtn.addEventListener('click', () => {
-      pomInventory = pomInventory.filter(x => x.id !== item.id);
-      pomSaveTodos();
-      pomRenderInventory();
+      pomAnimateRemove(el, () => {
+        pomInventory = pomInventory.filter(x => x.id !== item.id);
+        pomSaveTodos();
+        pomRenderInventory();
+      });
     });
     todoInvListEl.appendChild(el);
+    if (item.isNew) {
+      pomAnimateAdd(el);
+      delete item.isNew;
+    }
   });
 }
 function pomAddTodo() {
@@ -667,7 +749,8 @@ function pomAddTodo() {
     text,
     est: pomTodoEstValue,
     done: 0,
-    completed: false
+    completed: false,
+    isNew: true
   };
   if (pomViewMode === 'inventory') {
     pomInventory.push(newItem);
@@ -870,6 +953,14 @@ document.addEventListener('click', () => {
 
 pomLoadTodos();
 pomRenderTodos();
+
+
+
+
+
+
+
+
 
 
 
