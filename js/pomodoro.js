@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 /* ══════════════════════════════════════════════
    番茄钟（Pomodoro Timer）
@@ -29,6 +29,15 @@ let pomInterval = null;
 let pomTargetSessions = 4;   // 预计需要的番茄数（默认 4）
 let pomTotalFocusDone = 0;   // 当前任务已完成的专注次数
 
+// ── 今日待办 状态 ────────────────────────────
+let pomTodos = [];
+// { id: timestamp, text: string, est: number, done: number, completed: boolean }
+let pomHistory = {}; // 形如 { "2023-10-01": [todos...], ... }
+let pomCurrentTodoId = null;
+let pomTodoEstValue  = 1;
+let pomTodoVisible   = false;
+let pomViewHistory   = false; // 是否处于历史模式
+
 // ── DOM 引用 ───────────────────────────────────
 const pomPanelEl  = document.getElementById('pom-panel');
 const pomLabelEl  = document.getElementById('pom-label');
@@ -42,6 +51,15 @@ const pomSessDecEl   = document.getElementById('pom-sess-dec');
 const pomSessIncEl   = document.getElementById('pom-sess-inc');
 const pomSessCountEl  = document.getElementById('pom-sess-count');
 const pomToggleIconEl = document.getElementById('pom-toggle-icon');
+
+const todoPanelEl   = document.getElementById('pom-todo-panel');
+const todoHeadTitle = document.getElementById('todo-head-title');
+const todoListEl    = document.getElementById('todo-list');
+const todoHistListEl= document.getElementById('todo-history-list');
+const todoAddArea   = document.getElementById('todo-add-area');
+const todoInputEl   = document.getElementById('todo-input');
+const todoEstValEl  = document.getElementById('todo-est-val');
+const todoAddBtn    = document.getElementById('todo-add-btn');
 
 // ── SVG 圆环初始化 ─────────────────────────────
 const POM_RING_R    = 50;
@@ -90,7 +108,7 @@ function pomRender() {
   pomDotsEl.innerHTML = dotsHTML;
 
   // 同步步进器显示
-  pomSessCountEl.textContent = `×${pomTargetSessions}`;
+  pomSessCountEl.textContent = `${pomTargetSessions}`;
 }
 
 // ── 系统提示音 ────────────────────────────────
@@ -227,6 +245,17 @@ function pomOnPhaseEnd() {
     pomRounds++;
     const taskName = pomTaskInputEl.value.trim();
     const taskDone = pomTotalFocusDone >= pomTargetSessions;
+    
+    // 如果有绑定的待办事项，更新其进度
+    if (pomCurrentTodoId) {
+      const t = pomTodos.find(x => x.id === pomCurrentTodoId);
+      if (t) {
+        t.done++;
+        if (taskDone) t.completed = true;
+        pomSaveTodos();
+        pomRenderTodos();
+      }
+    }
 
     // 确定下一个休息阶段
     if (pomRounds >= POM_MAX_ROUNDS) {
@@ -257,7 +286,9 @@ function pomOnPhaseEnd() {
       // 任务已达标：重置进度，暂停等待用户开始下一个任务
       pomTotalFocusDone = 0;
       pomRounds         = 0;
+      pomCurrentTodoId  = null;
       pomRender();
+      pomRenderTodos();
       pomPauseTimer();           // 同时解锁输入框
       pomTaskInputEl.value = '';
       pomNotify('✨ 开始下一个任务吧！', true);
@@ -305,14 +336,17 @@ function pomKeyR() {
 
 // Esc：关闭面板
 function pomKeyEsc() {
-  if (pomVisible) pomHide();
+  if (pomTodoVisible) {
+    pomToggleTodoPanel(false);
+  } else if (pomVisible) {
+    pomHide();
+  }
 }
 
 // 全局导出
 window._pomKeyP   = pomKeyP;
 window._pomKeyR   = pomKeyR;
-window._pomKeyEsc = pomKeyEsc;
-
+window._pomKeyEsc = pomKeyEsc;window._pomKeyL   = pomKeyL;
 // ── 事件绑定 ──────────────────────────────────
 
 // 悬浮按钮点击：仅切换面板显示/隐藏，不暂停/开始
@@ -323,6 +357,9 @@ pomFabEl.addEventListener('click', () => {
     pomShow();
   }
 });
+
+// 阻止双击番茄按钮触发全屏
+pomFabEl.addEventListener('dblclick', e => e.stopPropagation());
 
 // 面板点击：仅阻止冒泡，防止触发全屏等（开始/暂停由专属按钮负责）
 pomPanelEl.addEventListener('click', e => e.stopPropagation());
@@ -343,10 +380,15 @@ pomSessDecEl.addEventListener('click', e => {
   e.stopPropagation();
   if (pomTargetSessions > 1) { pomTargetSessions--; pomRender(); }
 });
+// 阻止 dblclick 冒泡触发全屏
+pomSessDecEl.addEventListener('dblclick', e => e.stopPropagation());
+
 pomSessIncEl.addEventListener('click', e => {
   e.stopPropagation();
   if (pomTargetSessions < 12) { pomTargetSessions++; pomRender(); }
 });
+// 阻止 dblclick 冒泡触发全屏
+pomSessIncEl.addEventListener('dblclick', e => e.stopPropagation());
 
 // 操作按钮（鼠标 & 触摸通用）
 document.getElementById('pom-btn-toggle').addEventListener('click', e => {
@@ -372,3 +414,292 @@ window._pomSkip = function(seconds = 10) {
   console.log(`%c[Debug] %c番茄钟已快进至剩余 ${seconds} 秒`, 'color: #ff7043; font-weight: bold;', 'color: inherit;');
   return `快进成功: 剩 ${seconds} 秒`;
 };
+
+// ── 今日待办逻辑 ──────────────────────────────
+
+// 获取当前本地日期字符串 (YYYY-MM-DD)
+function pomGetDateStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// 本地存储读写
+function pomSaveTodos() {
+  const data = {
+    today: pomGetDateStr(),
+    todos: pomTodos,
+    history: pomHistory
+  };
+  localStorage.setItem('pomodoro_data', JSON.stringify(data));
+}
+
+function pomLoadTodos() {
+  try {
+    const raw = localStorage.getItem('pomodoro_data');
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    pomHistory = data.history || {};
+    
+    // 如果日期变了，将上一天的任务归档，清空今日任务
+    const currentDay = pomGetDateStr();
+    if (data.today && data.today !== currentDay) {
+      if (data.todos && data.todos.length > 0) {
+        pomHistory[data.today] = data.todos;
+      }
+      pomTodos = [];
+      pomCurrentTodoId = null;
+    } else {
+      pomTodos = data.todos || [];
+    }
+  } catch(e) {
+    console.warn("读取番茄钟数据失败", e);
+  }
+}
+
+function pomRenderTodos() {
+  todoListEl.innerHTML = '';
+  if (pomTodos.length === 0) {
+    todoListEl.innerHTML = `<div style="text-align:center; padding: 20px 0; color: rgba(255,255,255,0.4); font-size: 13px;">暂无待办，赶快添加一个吧！</div>`;
+    return;
+  }
+  
+  pomTodos.forEach(item => {
+    const el = document.createElement('div');
+    el.className = `todo-item ${item.completed ? 'completed' : ''} ${pomCurrentTodoId === item.id ? 'active' : ''}`;
+    
+    // 生成番茄图标
+    let poms = '';
+    for (let i = 0; i < item.est; i++) {
+      if (i < item.done) poms += '🍅';
+      else poms += '<span class="todo-poms-empty">⚪</span>';
+    }
+    // 增加超出预期的番茄展示
+    for (let i = item.est; i < item.done; i++) {
+        poms += '🍅';
+    }
+
+    el.innerHTML = `
+      <input type="checkbox" class="todo-chk" ${item.completed ? 'checked' : ''}>
+      <div class="todo-info">
+        <div class="todo-name" title="${item.text}">${item.text}</div>
+        <div class="todo-poms">${poms}</div>
+      </div>
+      <button class="todo-play" title="应用此待办到番茄钟">▶</button>
+      <button class="todo-del" title="删除此待办">✕</button>
+    `;
+
+    // 勾选完成
+    const chk = el.querySelector('.todo-chk');
+    chk.addEventListener('change', (e) => {
+      item.completed = e.target.checked;
+      pomSaveTodos();
+      pomRenderTodos();
+    });
+
+    // 删除任务
+    const delBtn = el.querySelector('.todo-del');
+    delBtn.addEventListener('click', () => {
+      pomTodos = pomTodos.filter(x => x.id !== item.id);
+      if (pomCurrentTodoId === item.id) {
+        pomCurrentTodoId = null;
+      }
+      pomSaveTodos();
+      pomRenderTodos();
+    });
+
+    // 开始任务
+    const playBtn = el.querySelector('.todo-play');
+    playBtn.addEventListener('click', () => {
+      if (pomCurrentTodoId === item.id) return; // 已经是当前任务
+      pomCurrentTodoId = item.id;
+      // 强制覆盖当前的番茄钟面板数据
+      pomTaskInputEl.value = item.text;
+      pomTargetSessions = item.est;
+      pomTotalFocusDone = item.done;
+      // 如果还没弹出番茄钟面板，则弹出来
+      if (!pomVisible) pomShow();
+      pomRender();
+      pomRenderTodos();
+      // 在手机设备上收起待办面板让出视野
+      if (window.innerWidth <= 600) pomToggleTodoPanel(false);
+    });
+
+    todoListEl.appendChild(el);
+  });
+}
+
+function pomAddTodo() {
+  const text = todoInputEl.value.trim();
+  if (!text) return;
+  pomTodos.push({
+    id: Date.now(),
+    text,
+    est: pomTodoEstValue,
+    done: 0,
+    completed: false
+  });
+  todoInputEl.value = '';
+  pomTodoEstValue = 1;
+  todoEstValEl.textContent = '1';
+  pomSaveTodos();
+  pomRenderTodos();
+}
+
+function pomRenderHistory() {
+  todoHistListEl.innerHTML = '';
+  const dates = Object.keys(pomHistory).sort((a,b) => b.localeCompare(a)); // 倒序
+  
+  if (dates.length === 0) {
+    todoHistListEl.innerHTML = `<div class="hist-empty">暂无历史记录</div>`;
+    return;
+  }
+
+  dates.forEach(date => {
+    const header = document.createElement('div');
+    header.className = 'hist-date';
+    header.textContent = date;
+    todoHistListEl.appendChild(header);
+    
+    pomHistory[date].forEach(item => {
+      const el = document.createElement('div');
+      el.className = `todo-item ${item.completed ? 'completed' : ''}`;
+      
+      let poms = '';
+      for (let i = 0; i < item.est; i++) {
+        if (i < item.done) poms += '🍅';
+        else poms += '<span class="todo-poms-empty">⚪</span>';
+      }
+      for (let i = item.est; i < item.done; i++) {
+          poms += '🍅';
+      }
+
+      el.innerHTML = `
+        <div class="todo-info" style="padding-left: 8px;">
+          <div class="todo-name" title="${item.text}">${item.text}</div>
+          <div class="todo-poms">${poms}</div>
+        </div>
+      `;
+      todoHistListEl.appendChild(el);
+    });
+  });
+}
+
+function pomToggleTodoPanel(forceStage) {
+  if (typeof forceStage === 'boolean') {
+    if (pomTodoVisible === forceStage) return; // 如果状态一致则直接返回
+    pomTodoVisible = forceStage;
+  } else {
+    pomTodoVisible = !pomTodoVisible;
+  }
+
+  // 根据当前番茄钟主面板是否显示，决定动画来源
+  // 如果主面板打开：从底部按钮处弹出（移除 from-side）
+  // 如果主面板关闭：从侧边滑出（添加 from-side）
+  if (!pomVisible) {
+    todoPanelEl.classList.add('from-side');
+  } else {
+    todoPanelEl.classList.remove('from-side');
+  }
+
+  if (pomTodoVisible) {
+    // 【核心修复】开启面板时，由于可能涉及改变动画的初始锚点（from-side 切换），
+    // 必须瞬间禁用 transition 让它回归正确的隐藏状态起点，再开始带有 transition 的展示动画。
+    // 否则浏览器会计算从“上一次关闭位置”到“当前打开位置”的斜向混乱动画。
+    todoPanelEl.style.transition = 'none';
+    void todoPanelEl.offsetHeight; // 强制重绘，应用起点位置
+    todoPanelEl.style.transition = ''; // 恢复 CSS 过渡
+
+    todoPanelEl.classList.add('visible');
+    setTimeout(() => todoInputEl.focus(), 50);
+  } else {
+    todoPanelEl.classList.remove('visible');
+  }
+}
+
+function pomKeyL() {
+  // 直接通过快捷键切换待办面板
+  pomToggleTodoPanel();
+}
+
+// 待办面板事件绑定
+document.getElementById('pom-btn-todo').addEventListener('click', e => {
+  e.stopPropagation();
+  pomToggleTodoPanel();
+});
+document.getElementById('todo-close-btn').addEventListener('click', e => {
+  e.stopPropagation();
+  pomToggleTodoPanel(false);
+});
+document.getElementById('todo-hist-btn').addEventListener('click', e => {
+  e.stopPropagation();
+  
+  // 记录开始前的高度，为动态过渡做准备
+  const oldHeight = todoPanelEl.offsetHeight;
+  todoPanelEl.style.height = oldHeight + 'px';
+  
+  pomViewHistory = !pomViewHistory;
+  
+  // 移除动画类以便重新触发重绘
+  todoListEl.classList.remove('list-fade-in');
+  todoHistListEl.classList.remove('list-fade-in');
+  
+  if (pomViewHistory) {
+    todoHeadTitle.textContent = '🕒 历史待办';
+    todoListEl.style.display = 'none';
+    todoAddArea.style.display = 'none';
+    todoHistListEl.style.display = 'flex';
+    pomRenderHistory();
+    todoHistListEl.classList.add('list-fade-in');
+  } else {
+    todoHeadTitle.textContent = '📝 今日待办';
+    todoListEl.style.display = 'flex';
+    todoAddArea.style.display = 'flex';
+    todoHistListEl.style.display = 'none';
+    todoListEl.classList.add('list-fade-in');
+  }
+
+  // 获取新内容的目标高度
+  todoPanelEl.style.height = 'auto';
+  const newHeight = todoPanelEl.offsetHeight;
+  
+  // 回退到旧高度，应用过渡后再设置新高度
+  todoPanelEl.style.height = oldHeight + 'px';
+  void todoPanelEl.offsetHeight; // 强制 reflow
+  
+  todoPanelEl.style.transition = 'height 0.35s cubic-bezier(0.2, 1, 0.4, 1), opacity 0.35s ease, transform 0.45s cubic-bezier(0.2, 1.15, 0.4, 1)';
+  todoPanelEl.style.height = newHeight + 'px';
+  
+  // 动画结束后清理行内高度和过渡，恢复原有的由 CSS 管理的响应式高度
+  setTimeout(() => {
+    todoPanelEl.style.height = '';
+    todoPanelEl.style.transition = '';
+  }, 350);
+});
+
+// 添加与步进器
+todoAddBtn.addEventListener('click', pomAddTodo);
+todoInputEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    e.stopPropagation(); // 阻止冒泡，防止触发全局的 Enter 全屏事件
+    pomAddTodo();
+  }
+});
+
+document.getElementById('todo-est-minus').addEventListener('click', () => {
+  if (pomTodoEstValue > 1) { pomTodoEstValue--; todoEstValEl.textContent = pomTodoEstValue; }
+});
+document.getElementById('todo-est-plus').addEventListener('click', () => {
+  if (pomTodoEstValue < 12) { pomTodoEstValue++; todoEstValEl.textContent = pomTodoEstValue; }
+});
+
+// 防止点击待办面板触发底层的隐藏
+todoPanelEl.addEventListener('click', e => e.stopPropagation());
+// 防止双击待办面板触发全屏
+todoPanelEl.addEventListener('dblclick', e => e.stopPropagation());
+
+pomLoadTodos();
+pomRenderTodos();
+
+
+

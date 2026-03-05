@@ -519,3 +519,333 @@ body.vol-hud-active #pom-notif {
   color: rgba(175, 185, 205, 0.55);
   align-self: center;
 }
+
+/* ══════════════════════════════════════════════
+   今日待办面板
+   ══════════════════════════════════════════════ */
+#pom-todo-panel {
+  position: fixed;
+  /* 调整中心位置：位于屏幕中央偏右，让它展开时比较自然 */
+  top: 50%;
+  right: 32px;
+  
+  /* 初始/收起状态：从居中偏右的位置精确定位到视口底部的番茄钟 📝 按钮处，并缩小 */
+  transform: translate(calc(-50vw + 122px), calc(50vh - 45px)) scale(0.05);
+  transform-origin: center bottom;
+
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  max-height: 80vh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(32px) saturate(200%) brightness(1.08);
+  -webkit-backdrop-filter: blur(32px) saturate(200%) brightness(1.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5), inset 0 1.5px 0 rgba(255,255,255,0.15);
+  opacity: 0;
+  pointer-events: none;
+  /* 调整 z-index 确保在番茄钟主面板(9000)之上，避免动画被遮挡 */
+  z-index: 9005;
+  transition: opacity 0.35s ease, transform 0.45s cubic-bezier(0.2, 1.15, 0.4, 1);
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* 主面板隐藏时打开待办的初始/收起状态（从屏幕右侧滑入，不涉及上下移动） */
+#pom-todo-panel.from-side {
+  transform: translateY(-50%) translateX(30px) scale(0.95);
+  transform-origin: center right;
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.2, 1, 0.4, 1);
+}
+
+#pom-todo-panel.visible {
+  opacity: 1;
+  pointer-events: auto;
+  /* 展开状态：恢复原本预设的右侧居中位置 */
+  transform: translateY(-50%) translate(0, 0) scale(1);
+}
+
+/* 主面板隐藏时打开待办的展开状态 */
+#pom-todo-panel.from-side.visible {
+  transform: translateY(-50%) translateX(0) scale(1);
+}
+
+@keyframes listFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.list-fade-in {
+  animation: listFadeIn 0.35s cubic-bezier(0.2, 1, 0.4, 1) forwards;
+}
+.todo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+.todo-title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: rgba(218, 226, 238, 0.95);
+}
+.todo-icon-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+.todo-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.todo-icon-btn[data-key] {
+  position: relative;
+}
+body.is-touch .todo-icon-btn[data-key]::after {
+  display: none;
+}
+.todo-icon-btn[data-key]::after {
+  content: attr(data-key);
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%) translateY(5px);
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(20, 24, 32, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(175, 185, 210, 0.85);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity   0.18s ease,
+    transform 0.18s ease;
+  z-index: 100;
+}
+.todo-icon-btn[data-key]:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.todo-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4px;
+}
+.todo-list::-webkit-scrollbar {
+  width: 4px;
+}
+.todo-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+.todo-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  transition: background 0.2s, border-color 0.2s;
+  cursor: default;
+}
+.todo-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.todo-item.active {
+  background: rgba(255, 112, 67, 0.12);
+  border-color: rgba(255, 112, 67, 0.35);
+}
+.todo-item.completed {
+  opacity: 0.55;
+}
+.todo-item.completed .todo-name {
+  text-decoration: line-through;
+}
+.todo-chk {
+  width: 18px;
+  height: 18px;
+  accent-color: #ff7043;
+  cursor: pointer;
+  margin: 0;
+}
+.todo-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+.todo-name {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.todo-poms {
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+.todo-play {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 6px;
+  border-radius: 50%;
+  transition: color 0.2s, transform 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.todo-play:hover {
+  color: #ff7043;
+  transform: scale(1.15);
+}
+.todo-del {
+  background: none;
+  border: none;
+  color: rgba(255, 0, 0, 0.4);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 6px;
+  border-radius: 50%;
+  transition: color 0.2s, background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.todo-del:hover {
+  color: rgba(255, 80, 80, 0.9);
+  background: rgba(255, 0, 0, 0.1);
+}
+.hist-date {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+  padding-bottom: 4px;
+}
+.hist-empty {
+  text-align: center;
+  padding: 20px 0;
+  color: rgba(255,255,255,0.4);
+  font-size: 13px;
+}
+.todo-add {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+#todo-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+#todo-input:focus {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+}
+#todo-input::placeholder { color: rgba(255, 255, 255, 0.35); }
+.todo-add-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.todo-est-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+.todo-est-stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0,0,0,0.25);
+  border-radius: 20px;
+  padding: 4px 10px;
+}
+.todo-est-stepper button {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-weight: bold;
+  padding: 0 4px;
+  font-size: 14px;
+}
+.todo-est-stepper button:hover {
+  color: #ff7043;
+}
+#todo-est-val {
+  font-size: 14px;
+  font-weight: 700;
+  min-width: 14px;
+  text-align: center;
+}
+#todo-add-btn {
+  background: rgba(255, 112, 67, 0.85);
+  border: none;
+  border-radius: 10px;
+  padding: 7px 18px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+}
+#todo-add-btn:hover {
+  opacity: 1;
+  transform: scale(1.05);
+}
+#todo-add-btn:active {
+  transform: scale(0.95);
+}
+@media (max-width: 600px) {
+  #pom-todo-panel {
+    right: 16px;
+    left: 16px;
+    width: auto;
+    top: 50%;
+    transform: translateY(-50%) scale(0.95);
+  }
+  #pom-todo-panel.visible {
+    transform: translateY(-50%) scale(1);
+  }
+}

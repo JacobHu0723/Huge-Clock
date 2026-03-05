@@ -52,13 +52,16 @@
         <div id="pom-dots"></div>
         <div id="pom-session-stepper">
           <button id="pom-sess-dec" aria-label="减少番茄数">−</button>
-          <span id="pom-sess-count">×4</span>
+          <span id="pom-sess-count">4</span>
           <button id="pom-sess-inc" aria-label="增加番茄数">＋</button>
         </div>
       </div>
     </div>
     <!-- 操作按钮（data-key 用于 CSS tooltip 显示快捷键）-->
     <div id="pom-actions">
+      <button id="pom-btn-todo" class="pom-action-btn" data-key="L" aria-label="今日待办">
+        <span>📝</span>
+      </button>
       <button id="pom-btn-toggle" class="pom-action-btn" data-key="P" aria-label="开始/暂停">
         <span id="pom-toggle-icon">▶</span>
       </button>
@@ -73,6 +76,39 @@
 
   <!-- 番茄钟阶段切换通知 -->
   <div id="pom-notif" aria-live="polite"></div>
+
+  <!-- 今日待办清单面板 (Activity Inventory) -->
+  <div id="pom-todo-panel" role="dialog" aria-label="今日待办">
+    <div class="todo-header">
+      <div class="todo-title" id="todo-head-title">📝 今日待办</div>
+      <div style="display: flex; gap: 8px;">
+        <button id="todo-hist-btn" class="todo-icon-btn" aria-label="历史记录" title="查看历史记录">🕒</button>
+        <button id="todo-close-btn" class="todo-icon-btn" data-key="Esc" aria-label="关闭待办">✕</button>
+      </div>
+    </div>
+    
+    <div class="todo-list" id="todo-list">
+      <!-- 动态从 js 渲染 -->
+    </div>
+
+    <!-- 历史记录展示区 -->
+    <div class="todo-list" id="todo-history-list" style="display: none;">
+      <!-- 动态从 js 渲染 -->
+    </div>
+    
+    <div class="todo-add" id="todo-add-area">
+      <input type="text" id="todo-input" placeholder="添加新任务 (Enter)..." autocomplete="off">
+      <div class="todo-add-row">
+        <span class="todo-est-label">预计番茄数：</span>
+        <div class="todo-est-stepper">
+          <button id="todo-est-minus">−</button>
+          <span id="todo-est-val">1</span>
+          <button id="todo-est-plus">＋</button>
+        </div>
+        <button id="todo-add-btn">添加</button>
+      </div>
+    </div>
+  </div>
 
   <!-- 脚本置于 body 末尾：DOM 已就绪，无需等待 DOMContentLoaded -->
   <script src="js/clock.js"></script>

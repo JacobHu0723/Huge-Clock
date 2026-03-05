@@ -72,6 +72,15 @@ function adjustVolume(delta) {
    键盘事件（使用标准 e.key，替代已废弃的 e.keyCode）
    ══════════════════════════════════════════════ */
 function handleKeyDown(e) {
+  // 如果当前焦点在输入框中，则不触发全局快捷键（除了 Escape）
+  if (document.activeElement && document.activeElement.tagName === 'INPUT') {
+    if (e.key === 'Escape') {
+      if (window._pomKeyEsc) window._pomKeyEsc();
+      document.activeElement.blur();
+    }
+    return;
+  }
+
   switch (e.key) {
     case 'ArrowLeft':  changeTrack(-1);                        break;
     case 'ArrowRight': changeTrack(1);                         break;
@@ -81,10 +90,12 @@ function handleKeyDown(e) {
     case 'Enter':      toggleFullscreen();                     break;
     case 'F11':        e.preventDefault(); toggleFullscreen(); break;
     case 'p':
-    case 'P':          if (window._pomKeyP)   window._pomKeyP();   break;
+    case 'P':          e.preventDefault(); if (window._pomKeyP)   window._pomKeyP();   break;
     case 'r':
-    case 'R':          if (window._pomKeyR)   window._pomKeyR();   break;
-    case 'Escape':     if (window._pomKeyEsc) window._pomKeyEsc(); break;
+    case 'R':          e.preventDefault(); if (window._pomKeyR)   window._pomKeyR();   break;
+    case 'l':
+    case 'L':          e.preventDefault(); if (window._pomKeyL)   window._pomKeyL();   break;
+    case 'Escape':     e.preventDefault(); if (window._pomKeyEsc) window._pomKeyEsc(); break;
   }
 }
 
