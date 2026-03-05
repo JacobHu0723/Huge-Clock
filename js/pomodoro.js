@@ -453,14 +453,7 @@ function pomRenderTodos() {
         poms += '🍅';
     }
     el.innerHTML = `
-      <input type="checkbox" class="todo-chk" ${item.completed ? 'checked' : ''}>
-      <div class="todo-info">
-        <div class="todo-name" title="${item.text}">${item.text}</div>
-        <div class="todo-poms">${poms}</div>
-      </div>
-      <button class="todo-play" title="应用此待办到番茄钟">▶</button>
-      <button class="todo-del" title="删除此待办">✕</button>
-    `;
+      <div class="todo-main-row"><input type="checkbox" class="todo-chk" ${item.completed ? 'checked' : ''}><div class="todo-info"><div class="todo-name" title="${item.text}">${item.text}</div><div class="todo-poms">${poms}</div></div><button class="todo-play" title="应用此待办到番茄钟">▶</button><button class="todo-del" title="删除此待办">✕</button></div>`;
 
     // 允许点击预计番茄图标区域来修改番茄数
     const pomsContainer = el.querySelector('.todo-poms');
@@ -470,7 +463,7 @@ function pomRenderTodos() {
       e.stopPropagation();
       let dropdown = el.querySelector('.inv-est-dropdown');
       if (dropdown) {
-        dropdown.classList.toggle('show');
+        dropdown.classList.toggle('show'); if (!dropdown.classList.contains('show')) { setTimeout(() => { if(!dropdown.classList.contains('show')) dropdown.remove(); }, 260); }
         if (dropdown.classList.contains('show')) {
           dropdown.querySelector('.inv-est-input').focus();
         }
@@ -479,21 +472,11 @@ function pomRenderTodos() {
       dropdown = document.createElement('div');
       dropdown.className = 'inv-est-dropdown';
       dropdown.innerHTML = `
-        <div style="display:flex; align-items:center; gap: 6px; padding-left: 4px; white-space:nowrap; overflow:hidden;">
-          <span style="font-size:13px; color:rgba(255,255,255,0.6);">🎯 目标</span>
-          <div class="todo-est-stepper" style="padding:2px 6px; margin-left: 7px;">
-            <button class="inv-est-minus" tabindex="-1">−</button>
-            <input type="number" class="inv-est-input" value="${item.est}" min="1" max="8" style="width:14px; text-align:center; padding:0; font-weight:bold; font-size:14px;" />
-            <button class="inv-est-plus" tabindex="-1">＋</button>
-          </div>
-        </div>
-        <div class="inv-est-actions" style="margin-left: auto; padding-right: 4px; gap: 6px; flex-shrink: 0;">
-          <button class="inv-est-cancel" tabindex="-1">取消</button>
-          <button class="inv-est-confirm" tabindex="-1">确认</button>
-        </div>
-      `;
+        <div style="display:flex; align-items:center; justify-content:space-between; width:100%; height:30px; overflow:hidden;"><div style="display:flex; align-items:center; gap: 6px; padding-left: 4px; white-space:nowrap; overflow:hidden;"><span style="font-size:13px; color:rgba(255,255,255,0.6);">🎯 目标</span><div class="todo-est-stepper" style="padding:2px 6px; margin-left: 7px;"><button class="inv-est-minus" tabindex="-1">−</button><input type="number" class="inv-est-input" value="${item.est}" min="1" max="8" style="width:14px; text-align:center; padding:0; font-weight:bold; font-size:14px;" /><button class="inv-est-plus" tabindex="-1">＋</button></div></div><div class="inv-est-actions" style="margin-left: auto; padding-right: 4px; gap: 6px; flex-shrink: 0;"><button class="inv-est-cancel" tabindex="-1">取消</button><button class="inv-est-confirm" tabindex="-1">确认</button></div></div>
+        `;
       dropdown.addEventListener('click', ev => ev.stopPropagation());
-      el.appendChild(dropdown);
+      
+        el.appendChild(dropdown);
       // 强制重绘以触发 transition 展开
       void dropdown.offsetWidth;
       dropdown.classList.add('show');
@@ -519,7 +502,7 @@ function pomRenderTodos() {
         if (ev.key === 'Escape') cancelBtn.click();
       });
 
-      cancelBtn.addEventListener('click', () => dropdown.classList.remove('show'));
+      cancelBtn.addEventListener('click', () => { dropdown.classList.remove('show'); setTimeout(() => { if(!dropdown.classList.contains('show')) dropdown.remove(); }, 260); });
 
       confirmBtn.addEventListener('click', () => {
         let val = parseInt(inputEl.value) || 1;
@@ -596,12 +579,7 @@ function pomRenderInventory() {
     const el = document.createElement('div');
     el.className = `todo-item ${item.completed ? 'completed' : ''}`;
     el.innerHTML = `
-      <div class="todo-info" style="padding-left: 8px;">
-        <div class="todo-name" title="${item.text}">${item.text}</div>
-      </div>
-      <button class="todo-play" title="添加到今日待办" style="font-size: 14px; margin-right: 8px;">＋</button>
-      <button class="todo-del" title="删除此活动">✕</button>
-    `;
+      <div class="todo-main-row"><div class="todo-info" style="padding-left: 8px;"><div class="todo-name" title="${item.text}">${item.text}</div></div><button class="todo-play" title="添加到今日待办" style="font-size: 14px; margin-right: 8px;">＋</button><button class="todo-del" title="删除此活动">✕</button></div>`;
     // 移入今日待办
     const addBtn = el.querySelector('.todo-play');
     addBtn.addEventListener('click', (e) => {
@@ -613,7 +591,7 @@ function pomRenderInventory() {
       }
       let dropdown = el.querySelector('.inv-est-dropdown');
       if (dropdown) {
-        dropdown.classList.toggle('show');
+        dropdown.classList.toggle('show'); if (!dropdown.classList.contains('show')) { setTimeout(() => { if(!dropdown.classList.contains('show')) dropdown.remove(); }, 260); }
         if (dropdown.classList.contains('show')) {
           dropdown.querySelector('.inv-est-input').focus();
         }
@@ -623,22 +601,12 @@ function pomRenderInventory() {
       dropdown = document.createElement('div');
       dropdown.className = 'inv-est-dropdown';
       dropdown.innerHTML = `
-        <div style="display:flex; align-items:center; gap: 6px; padding-left: 4px; white-space:nowrap; overflow:hidden;">
-          <span style="font-size:13px; color:rgba(255,255,255,0.6);">🎯 目标</span>
-          <div class="todo-est-stepper" style="padding:2px 6px; margin-left: 7px;">
-            <button class="inv-est-minus" tabindex="-1">−</button>
-            <input type="number" class="inv-est-input" value="${item.est}" min="1" max="8" style="width:14px; text-align:center; padding:0; font-weight:bold; font-size:14px;" />
-            <button class="inv-est-plus" tabindex="-1">＋</button>
-          </div>
-        </div>
-        <div class="inv-est-actions" style="margin-left: auto; padding-right: 4px; gap: 6px; flex-shrink: 0;">
-          <button class="inv-est-cancel" tabindex="-1">取消</button>
-          <button class="inv-est-confirm" tabindex="-1">确认</button>
-        </div>
-      `;
+        <div style="display:flex; align-items:center; justify-content:space-between; width:100%; height:30px; overflow:hidden;"><div style="display:flex; align-items:center; gap: 6px; padding-left: 4px; white-space:nowrap; overflow:hidden;"><span style="font-size:13px; color:rgba(255,255,255,0.6);">🎯 目标</span><div class="todo-est-stepper" style="padding:2px 6px; margin-left: 7px;"><button class="inv-est-minus" tabindex="-1">−</button><input type="number" class="inv-est-input" value="${item.est}" min="1" max="8" style="width:14px; text-align:center; padding:0; font-weight:bold; font-size:14px;" /><button class="inv-est-plus" tabindex="-1">＋</button></div></div><div class="inv-est-actions" style="margin-left: auto; padding-right: 4px; gap: 6px; flex-shrink: 0;"><button class="inv-est-cancel" tabindex="-1">取消</button><button class="inv-est-confirm" tabindex="-1">确认</button></div></div>
+        `;
       // 防止点击冒泡关闭自身
       dropdown.addEventListener('click', ev => ev.stopPropagation());
-      el.appendChild(dropdown);
+      
+        el.appendChild(dropdown);
       // 强制重绘以触发 transition 展开
       void dropdown.offsetWidth;
       dropdown.classList.add('show');
@@ -664,7 +632,7 @@ function pomRenderInventory() {
         if (ev.key === 'Escape') cancelBtn.click();
       });
 
-      cancelBtn.addEventListener('click', () => dropdown.classList.remove('show'));
+      cancelBtn.addEventListener('click', () => { dropdown.classList.remove('show'); setTimeout(() => { if(!dropdown.classList.contains('show')) dropdown.remove(); }, 260); });
 
       confirmBtn.addEventListener('click', () => {
         let val = parseInt(inputEl.value) || 1;
@@ -678,7 +646,7 @@ function pomRenderInventory() {
         pomSaveTodos();
         pomRenderTodos();
         pomNotify(`已将 "${item.text}" 提取至今日待办`, false);
-        dropdown.classList.remove('show');
+        dropdown.classList.remove('show'); setTimeout(() => { if(!dropdown.classList.contains('show')) dropdown.remove(); }, 260);
       });
     });
     // 删除
@@ -736,13 +704,8 @@ function pomRenderHistory() {
       for (let i = item.est; i < item.done; i++) {
           poms += '🍅';
       }
-      el.innerHTML = `
-        <div class="todo-info" style="padding-left: 8px;">
-          <div class="todo-name" title="${item.text}">${item.text}</div>
-          <div class="todo-poms">${poms}</div>
-        </div>
-      `;
-      todoHistListEl.appendChild(el);
+      el.innerHTML = `<div class="todo-main-row"><div class="todo-info" style="padding-left: 8px;"><div class="todo-name" title="${item.text}">${item.text}</div><div class="todo-poms">${poms}</div></div></div>`;
+        todoHistListEl.appendChild(el);
     });
   });
 }
@@ -901,11 +864,32 @@ todoPanelEl.addEventListener('dblclick', e => e.stopPropagation());
 // 失去焦点时隐藏所有的活动清单展开界面
 document.addEventListener('click', () => {
   document.querySelectorAll('.inv-est-dropdown.show').forEach(el => {
-    el.classList.remove('show');
+    el.classList.remove('show'); setTimeout(() => { if(!el.classList.contains('show')) el.remove(); }, 260);
   });
 });
 
 pomLoadTodos();
 pomRenderTodos();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
