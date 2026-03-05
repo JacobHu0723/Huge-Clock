@@ -116,19 +116,22 @@
       </div>
     </div>
     
-    <!-- 今日待办列表 -->
-    <div class="todo-list" id="todo-list">
-      <!-- 动态从 js 渲染 -->
-    </div>
+<!-- 列表容器：包裹所有可滚动的列表并隐藏溢出，防止皮筋回弹时元素跨过边界 -->
+    <div class="todo-list-container" style="flex: 1; overflow: hidden; display: flex; flex-direction: column; position: relative;">
+      <!-- 今日待办列表 -->
+      <div class="todo-list" id="todo-list">
+        <!-- 动态从 js 渲染 -->
+      </div>
 
-    <!-- 活动清单列表 -->
-    <div class="todo-list" id="todo-inv-list" style="display: none;">
-      <!-- 动态从 js 渲染 -->
-    </div>
+      <!-- 活动清单列表 -->
+      <div class="todo-list" id="todo-inv-list" style="display: none;">
+        <!-- 动态从 js 渲染 -->
+      </div>
 
-    <!-- 历史记录展示区 -->
-    <div class="todo-list" id="todo-history-list" style="display: none;">
-      <!-- 动态从 js 渲染 -->
+      <!-- 历史记录展示区 -->
+      <div class="todo-list" id="todo-history-list" style="display: none;">       
+        <!-- 动态从 js 渲染 -->
+      </div>
     </div>
     
     <!-- 底部添加区 -->

@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 /* ══════════════════════════════════════════════
    番茄钟（Pomodoro Timer）
    ──────────────────────────────────────────────
@@ -1132,33 +1132,70 @@ document.addEventListener('click', () => {
 pomLoadTodos();
 pomRenderTodos();
 
+/* ══════════════════════════════════════════════
+   触摸橡皮筋效果支持（Overscroll 弹性回弹）
+   针对 todo-list 类实现
+   ══════════════════════════════════════════════ */
+document.querySelectorAll('.todo-list').forEach(list => {
+  let startY = 0;
+  let isPulling = false;
+  let pullOffset = 0;
 
+  list.addEventListener('touchstart', e => {
+    // 关键修正：强行清除列表切换时的淡入动画，避免动画锁死 transform
+    list.classList.remove('list-fade-in');
 
+    const isAtTop = list.scrollTop <= 0;
+    const isAtBottom = Math.ceil(list.scrollTop + list.clientHeight) >= list.scrollHeight - 1;
 
+    if (isAtTop || isAtBottom) {
+      startY = e.touches[0].clientY;
+      isPulling = true;
+      pullOffset = 0;
+      list.style.transition = 'none';
+    }
+  }, { passive: true });
 
+  list.addEventListener('touchmove', e => {
+    if (!isPulling) return;
 
+    const currentY = e.touches[0].clientY;
+    const dy = currentY - startY;
 
+    const isAtTop = list.scrollTop <= 0;
+    const isAtBottom = Math.ceil(list.scrollTop + list.clientHeight) >= list.scrollHeight - 1;
 
+    // 向下拉（在顶部）
+    if (isAtTop && dy > 0) {
+      e.preventDefault();
+      pullOffset = dy * 0.4;
+      list.style.transform = `translateY(${pullOffset}px)`;
+    } 
+    // 向上拉（在底部）
+    else if (isAtBottom && dy < 0) {
+      e.preventDefault();
+      pullOffset = dy * 0.4;
+      list.style.transform = `translateY(${pullOffset}px)`;
+    } else {
+      isPulling = false;
+      list.style.transform = 'translateY(0)';
+    }
+  }, { passive: false });
 
+  list.addEventListener('touchend', () => {
+    if (!isPulling) return;
+    isPulling = false;
 
+    // 回弹动画
+    list.style.transition = 'transform 0.4s cubic-bezier(0.2, 1, 0.3, 1)';
+    list.style.transform = 'translateY(0)';
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    // 动画结束后清理内联样式
+    setTimeout(() => {
+      list.style.transition = '';
+      if (list.style.transform === 'translateY(0px)' || list.style.transform === 'translateY(0)') {
+        list.style.transform = '';
+      }
+    }, 400);
+  });
+});
