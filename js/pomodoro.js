@@ -349,19 +349,24 @@ function pomKeyP() {
     pomStartTimer();
   }
 }
-// R：重置当前阶段（不跳转阶段）
+// R：重置到最开始的专注阶段
 function pomKeyR() {
   if (!pomVisible) return;
   pomPauseTimer();
-  pomTimeLeft = POM_PHASES[pomPhaseIdx].duration;
+  pomPhaseIdx = 0;
+  pomTimeLeft = POM_PHASES[0].duration;
+  pomRounds = 0;
+  pomTotalFocusDone = 0;
   let clearedInterrupts = false;
-  
+
   if (pomCurrentTodoId) {
     const t = pomTodos.find(x => x.id === pomCurrentTodoId);
     if (t) {
       if (t.intInterrupts > 0 || t.extInterrupts > 0) clearedInterrupts = true;
       t.intInterrupts = 0;
       t.extInterrupts = 0;
+      t.done = 0;
+      t.completed = false;
       pomSaveTodos();
       if(pomViewMode === 'today') pomRenderTodos();
     }
