@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 /* ══════════════════════════════════════════════
    番茄钟（Pomodoro Timer）
    ──────────────────────────────────────────────
@@ -252,6 +252,29 @@ function pomStartTimer() {
   if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
     Notification.requestPermission();
   }
+
+  // 开始计时时，如果是自己手动填写的未关联任务（或半途修改导致已解绑），自动在今日待办中新建一个并关联
+  const taskName = pomTaskInputEl.value.trim();
+  if (taskName && !pomCurrentTodoId) {
+    // 创建一个新的待办，目标番茄数取面板上设定好的（通过加减号得来）或者默认 1
+    const newItem = {
+      id: Date.now(),
+      text: taskName,
+      est: pomTargetSessions || 1,
+      done: pomTotalFocusDone || 0,
+      completed: false,
+      isNew: true,
+      intInterrupts: pomSessionIntInterrupts || 0,
+      extInterrupts: pomSessionExtInterrupts || 0
+    };
+    pomTodos.push(newItem);
+    pomCurrentTodoId = newItem.id;
+    pomSaveTodos();
+    if(pomViewMode === 'today') {
+      pomRenderTodos();
+    }
+  }
+
   clearInterval(pomInterval);
   pomRunning = true;
   pomPanelEl.classList.add('running');
@@ -452,6 +475,19 @@ pomTaskInputEl.addEventListener('dblclick', e => e.stopPropagation());
 // Enter 键确认后失焦
 pomTaskInputEl.addEventListener('keydown', e => {
   if (e.key === 'Enter') { e.preventDefault(); pomTaskInputEl.blur(); }
+});
+
+// 输入框内容发生变化时
+pomTaskInputEl.addEventListener('input', e => {
+  // 1. 如果修改了事件标题，且存在当前关联的待办，则解除绑定（已不是最初那件事）
+  if (pomCurrentTodoId) {
+    const currentTodo = pomTodos.find(x => x.id === pomCurrentTodoId);
+    // 判断是否发生了实际的名称更改
+    if (currentTodo && pomTaskInputEl.value.trim() !== currentTodo.text) {
+      pomCurrentTodoId = null;
+      pomRenderTodos(); // 重新渲染列表以解除高亮样式
+    }
+  }
 });
 // 步进器：减少 / 增加目标番茄数（范围 1 ~ 12）
 pomSessDecEl.addEventListener('click', e => {
