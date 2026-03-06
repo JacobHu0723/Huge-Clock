@@ -996,7 +996,7 @@ body.is-touch .todo-icon-btn[data-key]::after {
   flex-direction: column;
   gap: 0;
   padding: 12px;
-  height: 66px; /* 固定卡片高度，与空状态保持绝对一致，彻底解决高度突变 */
+  min-height: 66px; /* 修改为 min-height 允许内部下拉菜单撑开高度 */
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
