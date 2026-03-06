@@ -305,7 +305,6 @@ function pomOnPhaseEnd() {
       const t = pomTodos.find(x => x.id === pomCurrentTodoId);
       if (t) {
         t.done++;
-        if (taskDone) t.completed = true;
         pomSaveTodos();
         pomRenderTodos();
       }
@@ -321,7 +320,7 @@ function pomOnPhaseEnd() {
     }
     if (taskDone) {
       const nameStr = taskName ? `"${taskName}" ` : '';
-      pomNotify(`🎉 ${nameStr}完成！共专注 ${pomTotalFocusDone} 个🍅`, true);
+      pomNotify(`⏰ ${nameStr}目标番茄数已达标！共专注 ${pomTotalFocusDone} 个🍅`, true);
     } else {
       const breakLabel = pomPhaseIdx === 2 ? '长休息' : '短休息';
       pomNotify(`✅ 专注结束，开始${breakLabel}（${pomTotalFocusDone}/${pomTargetSessions}）`, true);
@@ -595,6 +594,37 @@ function pomLoadTodos() {
     console.warn("读取番茄钟数据失败", e);
   }
 }
+function pomGeneratePomsHtml(item) {
+  let est = item.est || 1;
+  let ext1 = item.ext1 || 0;
+  let ext2 = item.ext2 || 0;
+  let done = item.done || 0;
+  let html = '';
+  for (let i = 0; i < est; i++) {
+    if (done > i) html += '🍅';
+    else html += '<span class="todo-poms-empty">⚪</span>';
+  }
+  if (ext1 > 0 || done > est) {
+    let doneAfterNormal = Math.max(0, done - est);
+    for (let i = 0; i < ext1; i++) {
+      if (doneAfterNormal > i) html += '🔵';
+      else html += '<span class="todo-poms-empty" style="opacity:0.6; filter:saturate(0);">🔵</span>';
+    }
+  }
+  if (ext2 > 0 || done > est + ext1) {
+    let doneAfterExt1 = Math.max(0, done - est - ext1);
+    for (let i = 0; i < ext2; i++) {
+      if (doneAfterExt1 > i) html += '🟣';
+      else html += '<span class="todo-poms-empty" style="opacity:0.6; filter:saturate(0);">🟣</span>';
+    }
+  }
+  let plannedTotal = est + ext1 + ext2;
+  for (let i = plannedTotal; i < done; i++) {
+    html += '🔴'; 
+  }
+  return html;
+}
+
 function pomAnimateAdd(el, isFirst = false) {
   el.style.opacity = '0';
   requestAnimationFrame(() => {
@@ -691,15 +721,7 @@ function pomRenderTodos() {
     const el = document.createElement('div');
     el.className = `todo-item ${item.completed ? 'completed' : ''} ${pomCurrentTodoId === item.id ? 'active' : ''}`;
     // 生成番茄图标
-    let poms = '';
-    for (let i = 0; i < item.est; i++) {
-      if (i < item.done) poms += '🍅';
-      else poms += '<span class="todo-poms-empty">⚪</span>';
-    }
-    // 增加超出预期的番茄展示
-    for (let i = item.est; i < item.done; i++) {
-        poms += '🍅';
-    }
+    let poms = pomGeneratePomsHtml(item);
 
     // 生成中断统计 HTML
     let interruptsHtml = '';
@@ -731,9 +753,33 @@ function pomRenderTodos() {
       }
       dropdown = document.createElement('div');
       dropdown.className = 'inv-est-dropdown';
+      let est = item.est || 1;
+      let ext1 = item.ext1 || 0;
+      let ext2 = item.ext2 || 0;
+      let done = item.done || 0;
+
       dropdown.innerHTML = `
-        <div style="display:flex; align-items:center; justify-content:space-between; width:100%; height:30px; overflow:hidden;"><div style="display:flex; align-items:center; gap: 6px; padding-left: 4px; white-space:nowrap; overflow:hidden;"><span style="font-size:13px; color:rgba(255,255,255,0.6);">🎯 目标</span><div class="todo-est-stepper" style="padding:2px 6px; margin-left: 7px;"><button class="inv-est-minus" tabindex="-1">−</button><input type="number" class="inv-est-input" value="${item.est}" min="1" max="8" style="width:14px; text-align:center; padding:0; font-weight:bold; font-size:14px;" /><button class="inv-est-plus" tabindex="-1">＋</button></div></div><div class="inv-est-actions" style="margin-left: auto; padding-right: 4px; gap: 6px; flex-shrink: 0;"><button class="inv-est-cancel" tabindex="-1">取消</button><button class="inv-est-confirm" tabindex="-1">确认</button></div></div>
-        `;
+        <div style="display:flex; flex-direction:column; gap:8px; padding: 6px; width:100%; box-sizing:border-box;">
+          <div class="row-est" style="display:flex; align-items:center; justify-content:space-between; ${done >= est && (ext1 > 0 || done > est) ? 'opacity:0.5; pointer-events:none;' : ''}">
+            <span style="font-size:13px; color:rgba(255,255,255,0.6);">🎯 预估目标</span>
+            <div class="todo-est-stepper" style="padding:2px 6px;"><button class="step-btn step-minus" data-type="est" tabindex="-1">−</button><input type="number" class="inv-est-input step-input" data-type="est" value="${est}" min="1" max="12" style="width:20px; text-align:center; padding:0; font-weight:bold; font-size:14px;" readonly /><button class="step-btn step-plus" data-type="est" tabindex="-1">＋</button></div>
+          </div>
+          
+          <div class="row-ext1" style="display:flex; align-items:center; justify-content:space-between; ${done < est ? 'display:none;' : (done >= est + ext1 && ext1 > 0 ? 'opacity:0.5; pointer-events:none;' : '')}">
+            <span style="font-size:13px; color:rgba(255,255,255,0.6);">🔵 首次追加</span>
+            <div class="todo-est-stepper" style="padding:2px 6px;"><button class="step-btn step-minus" data-type="ext1" tabindex="-1">−</button><input type="number" class="inv-est-input step-input" data-type="ext1" value="${ext1}" min="0" max="12" style="width:20px; text-align:center; padding:0; font-weight:bold; font-size:14px;" readonly /><button class="step-btn step-plus" data-type="ext1" tabindex="-1">＋</button></div>
+          </div>
+
+          <div class="row-ext2" style="display:flex; align-items:center; justify-content:space-between; ${ext1 === 0 || done < est + ext1 ? 'display:none;' : ''}">
+            <span style="font-size:13px; color:rgba(255,255,255,0.6);">🟣 再次追加</span>
+            <div class="todo-est-stepper" style="padding:2px 6px;"><button class="step-btn step-minus" data-type="ext2" tabindex="-1">−</button><input type="number" class="inv-est-input step-input" data-type="ext2" value="${ext2}" min="0" max="12" style="width:20px; text-align:center; padding:0; font-weight:bold; font-size:14px;" readonly /><button class="step-btn step-plus" data-type="ext2" tabindex="-1">＋</button></div>
+          </div>
+          <div class="inv-est-actions" style="margin-top:4px; display:flex; justify-content:flex-end; gap:6px;">
+            <button class="inv-est-cancel" tabindex="-1">取消</button>
+            <button class="inv-est-confirm" tabindex="-1">确认</button>
+          </div>
+        </div>
+      `;
       dropdown.addEventListener('click', ev => ev.stopPropagation());
       
         el.appendChild(dropdown);
@@ -741,37 +787,45 @@ function pomRenderTodos() {
       void dropdown.offsetWidth;
       dropdown.classList.add('show');
 
-      const inputEl = dropdown.querySelector('.inv-est-input');
-      const minusBtn = dropdown.querySelector('.inv-est-minus');
-      const plusBtn = dropdown.querySelector('.inv-est-plus');
       const cancelBtn = dropdown.querySelector('.inv-est-cancel');
       const confirmBtn = dropdown.querySelector('.inv-est-confirm');
+      const inputs = {
+        est: dropdown.querySelector('.step-input[data-type="est"]'),
+        ext1: dropdown.querySelector('.step-input[data-type="ext1"]'),
+        ext2: dropdown.querySelector('.step-input[data-type="ext2"]')
+      };
 
-      inputEl.focus();
-
-      minusBtn.addEventListener('click', () => {
-        let val = parseInt(inputEl.value) || 1;
-        if (val > 1) inputEl.value = val - 1;
+      dropdown.querySelectorAll('.step-minus').forEach(btn => {
+        btn.addEventListener('click', () => {
+          let type = btn.dataset.type;
+          let input = inputs[type];
+          let val = parseInt(input.value) || 0;
+          let min = type === 'est' ? 1 : 0;
+          
+          if (type === 'ext1' && val === 1 && parseInt(inputs.ext2.value) > 0) return; // 不能在有二加时归零一加
+          
+          if (val > min) input.value = val - 1;
+        });
       });
-      plusBtn.addEventListener('click', () => {
-        let val = parseInt(inputEl.value) || 1;
-        if (val < 8) inputEl.value = val + 1;
-      });
-      inputEl.addEventListener('keydown', ev => {
-        if (ev.key === 'Enter') confirmBtn.click();
-        if (ev.key === 'Escape') cancelBtn.click();
+      dropdown.querySelectorAll('.step-plus').forEach(btn => {
+        btn.addEventListener('click', () => {
+          let type = btn.dataset.type;
+          let input = inputs[type];
+          let val = parseInt(input.value) || 0;
+          if (val < 12) input.value = val + 1;
+        });
       });
 
       cancelBtn.addEventListener('click', () => { dropdown.classList.remove('show'); setTimeout(() => { if(!dropdown.classList.contains('show')) dropdown.remove(); }, 260); });
 
       confirmBtn.addEventListener('click', () => {
-        let val = parseInt(inputEl.value) || 1;
-        if (val < 1) val = 1;
-        item.est = val;
+        item.est = Math.max(1, parseInt(inputs.est.value) || 1);
+        item.ext1 = Math.max(0, parseInt(inputs.ext1.value) || 0);
+        item.ext2 = Math.max(0, parseInt(inputs.ext2.value) || 0);
         
         // 如果当前正在计时该任务，则同步更新面板显示
         if (pomCurrentTodoId === item.id) {
-          pomTargetSessions = val;
+          pomTargetSessions = item.est + item.ext1 + item.ext2;
           pomRender();
         }
         
@@ -821,7 +875,7 @@ function pomRenderTodos() {
       pomCurrentTodoId = item.id;
       // 强制覆盖当前的番茄钟面板数据
       pomTaskInputEl.value = item.text;
-      pomTargetSessions = item.est;
+      pomTargetSessions = (item.est || 1) + (item.ext1 || 0) + (item.ext2 || 0);
       pomTotalFocusDone = item.done;
       // 如果还没弹出番茄钟面板，则弹出来
       if (!pomVisible) pomShow();
@@ -868,9 +922,34 @@ function pomRenderInventory() {
       // 首次点击，动态渲染内联预计番茄数设置界面
       dropdown = document.createElement('div');
       dropdown.className = 'inv-est-dropdown';
+      
+      let est = item.est || 1;
+      let ext1 = item.ext1 || 0;
+      let ext2 = item.ext2 || 0;
+      let done = item.done || 0;
+
       dropdown.innerHTML = `
-        <div style="display:flex; align-items:center; justify-content:space-between; width:100%; height:30px; overflow:hidden;"><div style="display:flex; align-items:center; gap: 6px; padding-left: 4px; white-space:nowrap; overflow:hidden;"><span style="font-size:13px; color:rgba(255,255,255,0.6);">🎯 目标</span><div class="todo-est-stepper" style="padding:2px 6px; margin-left: 7px;"><button class="inv-est-minus" tabindex="-1">−</button><input type="number" class="inv-est-input" value="${item.est}" min="1" max="8" style="width:14px; text-align:center; padding:0; font-weight:bold; font-size:14px;" /><button class="inv-est-plus" tabindex="-1">＋</button></div></div><div class="inv-est-actions" style="margin-left: auto; padding-right: 4px; gap: 6px; flex-shrink: 0;"><button class="inv-est-cancel" tabindex="-1">取消</button><button class="inv-est-confirm" tabindex="-1">确认</button></div></div>
-        `;
+        <div style="display:flex; flex-direction:column; gap:8px; padding: 6px; width:100%; box-sizing:border-box;">
+          <div class="row-est" style="display:flex; align-items:center; justify-content:space-between; ${done >= est && (ext1 > 0 || done > est) ? 'opacity:0.5; pointer-events:none;' : ''}">
+            <span style="font-size:13px; color:rgba(255,255,255,0.6);">🎯 预估目标</span>
+            <div class="todo-est-stepper" style="padding:2px 6px;"><button class="step-btn step-minus" data-type="est" tabindex="-1">−</button><input type="number" class="inv-est-input step-input" data-type="est" value="${est}" min="1" max="12" style="width:20px; text-align:center; padding:0; font-weight:bold; font-size:14px;" readonly /><button class="step-btn step-plus" data-type="est" tabindex="-1">＋</button></div>
+          </div>
+          
+          <div class="row-ext1" style="display:flex; align-items:center; justify-content:space-between; ${done < est ? 'display:none;' : (done >= est + ext1 && ext1 > 0 ? 'opacity:0.5; pointer-events:none;' : '')}">
+            <span style="font-size:13px; color:rgba(255,255,255,0.6);">🔵 首次追加</span>
+            <div class="todo-est-stepper" style="padding:2px 6px;"><button class="step-btn step-minus" data-type="ext1" tabindex="-1">−</button><input type="number" class="inv-est-input step-input" data-type="ext1" value="${ext1}" min="0" max="12" style="width:20px; text-align:center; padding:0; font-weight:bold; font-size:14px;" readonly /><button class="step-btn step-plus" data-type="ext1" tabindex="-1">＋</button></div>
+          </div>
+
+          <div class="row-ext2" style="display:flex; align-items:center; justify-content:space-between; ${ext1 === 0 || done < est + ext1 ? 'display:none;' : ''}">
+            <span style="font-size:13px; color:rgba(255,255,255,0.6);">🟣 再次追加</span>
+            <div class="todo-est-stepper" style="padding:2px 6px;"><button class="step-btn step-minus" data-type="ext2" tabindex="-1">−</button><input type="number" class="inv-est-input step-input" data-type="ext2" value="${ext2}" min="0" max="12" style="width:20px; text-align:center; padding:0; font-weight:bold; font-size:14px;" readonly /><button class="step-btn step-plus" data-type="ext2" tabindex="-1">＋</button></div>
+          </div>
+          <div class="inv-est-actions" style="margin-top:4px; display:flex; justify-content:flex-end; gap:6px;">
+            <button class="inv-est-cancel" tabindex="-1">取消</button>
+            <button class="inv-est-confirm" tabindex="-1">确认</button>
+          </div>
+        </div>
+      `;
       // 防止点击冒泡关闭自身
       dropdown.addEventListener('click', ev => ev.stopPropagation());
       
@@ -879,37 +958,43 @@ function pomRenderInventory() {
       void dropdown.offsetWidth;
       dropdown.classList.add('show');
 
-      const inputEl = dropdown.querySelector('.inv-est-input');
-      const minusBtn = dropdown.querySelector('.inv-est-minus');
-      const plusBtn = dropdown.querySelector('.inv-est-plus');
       const cancelBtn = dropdown.querySelector('.inv-est-cancel');
       const confirmBtn = dropdown.querySelector('.inv-est-confirm');
+      const inputs = {
+        est: dropdown.querySelector('.step-input[data-type="est"]'),
+        ext1: dropdown.querySelector('.step-input[data-type="ext1"]'),
+        ext2: dropdown.querySelector('.step-input[data-type="ext2"]')
+      };
 
-      inputEl.focus();
-
-      minusBtn.addEventListener('click', () => {
-        let val = parseInt(inputEl.value) || 1;
-        if (val > 1) inputEl.value = val - 1;
+      dropdown.querySelectorAll('.step-minus').forEach(btn => {
+        btn.addEventListener('click', () => {
+          let type = btn.dataset.type;
+          let input = inputs[type];
+          let val = parseInt(input.value) || 0;
+          let min = type === 'est' ? 1 : 0;
+          if (val > min) input.value = val - 1;
+        });
       });
-      plusBtn.addEventListener('click', () => {
-        let val = parseInt(inputEl.value) || 1;
-        if (val < 8) inputEl.value = val + 1;
-      });
-      inputEl.addEventListener('keydown', ev => {
-        if (ev.key === 'Enter') confirmBtn.click();
-        if (ev.key === 'Escape') cancelBtn.click();
+      dropdown.querySelectorAll('.step-plus').forEach(btn => {
+        btn.addEventListener('click', () => {
+          let type = btn.dataset.type;
+          let input = inputs[type];
+          let val = parseInt(input.value) || 0;
+          if (val < 12) input.value = val + 1;
+        });
       });
 
       cancelBtn.addEventListener('click', () => { dropdown.classList.remove('show'); setTimeout(() => { if(!dropdown.classList.contains('show')) dropdown.remove(); }, 260); });
 
       confirmBtn.addEventListener('click', () => {
-        let val = parseInt(inputEl.value) || 1;
-        if (val < 1) val = 1;
-        const todoItem = { ...item, id: Date.now(), est: val, isNew: true };
+        const todoItem = { ...item, id: Date.now(), isNew: true };
+        todoItem.est = Math.max(1, parseInt(inputs.est.value) || 1);
+        todoItem.ext1 = Math.max(0, parseInt(inputs.ext1.value) || 0);
+        todoItem.ext2 = Math.max(0, parseInt(inputs.ext2.value) || 0);
         todoItem.inventoryOriginalId = item.id;
         item.todayInstances = item.todayInstances || [];
         item.todayInstances.push(todoItem.id);
-        
+
         pomTodos.push(todoItem);
         pomSaveTodos();
         pomRenderTodos();
@@ -974,6 +1059,9 @@ function pomRenderHistory() {
     let totalInt = 0;
     let totalExt = 0;
     
+    let totalExt1Poms = 0; // 二次预估番茄数
+    let totalExt2Poms = 0; // 三次预估番茄数
+
     let completedDonePoms = 0;
     let completedEstPoms = 0;
 
@@ -981,10 +1069,14 @@ function pomRenderHistory() {
       totalDone += t.done || 0;
       totalInt += t.intInterrupts || 0;
       totalExt += t.extInterrupts || 0;
+      
+      totalExt1Poms += t.ext1 || 0;
+      totalExt2Poms += t.ext2 || 0;
+
       if (t.completed) {
         completedCount++;
         completedDonePoms += t.done || 0;
-        completedEstPoms += t.est || 0;
+        completedEstPoms += (t.est || 1) + (t.ext1 || 0) + (t.ext2 || 0);
       }
     });
 
@@ -1028,6 +1120,10 @@ function pomRenderHistory() {
             <span class="hist-stat-val">${totalDone}</span>
             <span class="hist-stat-label">日总番茄</span>
           </div>
+          <div class="hist-stat-item" title="今日的所有二次与三次预估番茄总数">
+            <span class="hist-stat-val" style="color:#0078D7;">${totalExt1Poms}/${totalExt2Poms}</span>
+            <span class="hist-stat-label">二/三次预估</span>
+          </div>
           <div class="hist-stat-item" title="仅计算已完成任务的「预估番茄」与「实际花费」之差">
             <span class="hist-stat-val ${diffClass}">${diffDisplay}</span>
             <span class="hist-stat-label">结项误差</span>
@@ -1044,14 +1140,7 @@ function pomRenderHistory() {
     `;
 
     tasks.forEach(item => {
-      let poms = '';
-      for (let i = 0; i < item.est; i++) {
-        if (i < item.done) poms += '🍅';
-        else poms += '<span class="todo-poms-empty">⚪</span>';
-      }
-      for (let i = item.est; i < item.done; i++) {
-          poms += '🍅';
-      }
+        let poms = pomGeneratePomsHtml(item);
 
       let intsHtml = '';
       const tInt = item.intInterrupts || 0;
@@ -1065,13 +1154,15 @@ function pomRenderHistory() {
 
       let taskDiffText = '';
       let taskDiffClass = '';
+      let itemTotalEst = (item.est || 1) + (item.ext1 || 0) + (item.ext2 || 0);
+      let estStr = `${item.est || 1}${item.ext1 ? '(+'+item.ext1+')' : ''}${item.ext2 ? '(+'+item.ext2+')' : ''}`;
       if (item.completed) {
-        let taskDiff = item.done - item.est;
-        taskDiffClass = taskDiff > 0 ? 'over' : (taskDiff < 0 ? 'under' : 'exact');
-        taskDiffText = `预 ${item.est} / 实 ${item.done}`;
+        let taskDiff = item.done - itemTotalEst;
+        taskDiffClass = taskDiff > 0 ? 'over' : (taskDiff < 0 ? 'under' : 'exact');  
+        taskDiffText = `预 ${estStr} / 实 ${item.done}`;
       } else {
         taskDiffClass = 'uncompleted';
-        taskDiffText = `预 ${item.est} / 实 ${item.done}`;
+        taskDiffText = `预 ${estStr} / 实 ${item.done}`;
       }
 
       html += `
