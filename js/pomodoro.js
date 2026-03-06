@@ -27,6 +27,7 @@ let pomTotalFocusDone = 0;   // 当前任务已完成的专注次数
 let pomSessionIntInterrupts = 0; // 当前未使用待办的内部中断
 let pomSessionExtInterrupts = 0; // 当前未使用待办的外部中断
 // ── 今日待办 状态 ────────────────────────────
+let pomActiveDate = null;  // 当前工作日锚点
 let pomTodos = [];
 let pomInventory = []; // 活动清单
 // { id: timestamp, text: string, est: number, done: number, completed: boolean }
@@ -545,10 +546,10 @@ window._pomNextDay = function() {
   pomTodos = [];
   pomCurrentTodoId = null;
   pomSaveTodos();
-  
+
   if (typeof pomRenderTodos === 'function' && pomViewMode === 'today') pomRenderTodos();
   if (typeof pomRenderHistory === 'function' && pomViewMode === 'history') pomRenderHistory();
-  
+
   console.log(`%c[Debug] %c已模拟进入下一天，当前待办已归档至 ${currentDay}`, 'color: #3498db; font-weight: bold;', 'color: inherit;');
   return "模拟跨天完成，任务已归档";
 };
@@ -561,7 +562,7 @@ function pomGetDateStr() {
 // 本地存储读写
 function pomSaveTodos() {
   const data = {
-    today: pomGetDateStr(),
+    today: pomActiveDate || pomGetDateStr(),
     todos: pomTodos,
     inventory: pomInventory,
     history: pomHistory
@@ -571,12 +572,15 @@ function pomSaveTodos() {
 function pomLoadTodos() {
   try {
     const raw = localStorage.getItem('pomodoro_data');
+    const currentDay = pomGetDateStr();
+    pomActiveDate = currentDay; // 默认将活跃天设为当前真实日期
+
     if (!raw) return;
     const data = JSON.parse(raw);
     pomHistory = data.history || {};
     pomInventory = data.inventory || [];
+    
     // 如果日期变了，将上一天的任务归档，清空今日任务
-    const currentDay = pomGetDateStr();
     if (data.today && data.today !== currentDay) {
       if (data.todos && data.todos.length > 0) {
         pomHistory[data.today] = data.todos;
@@ -585,6 +589,7 @@ function pomLoadTodos() {
       pomCurrentTodoId = null;
     } else {
       pomTodos = data.todos || [];
+      pomActiveDate = data.today || currentDay; // 恢复保存时的活跃日期
     }
   } catch(e) {
     console.warn("读取番茄钟数据失败", e);
