@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-cn">
 
 <head>
@@ -21,6 +21,16 @@
 
 <body>
   <div id="main"></div>
+
+  <!-- 隐藏的感应区域，用于 AOD 开关显示 -->
+  <div id="aod-switch-zone"></div>
+  <!-- AOD 息屏模式开关 -->
+  <div id="aod-switch-wrap" aria-label="AOD 保护开关">
+    <span>AOD 保护</span>
+    <div id="aod-toggle" class="ios-toggle on">
+      <div class="ios-toggle-knob"></div>
+    </div>
+  </div>
 
   <!-- 音量 HUD -->
   <div id="volume-hud" aria-live="polite" aria-label="当前音量">
@@ -160,3 +170,4 @@
 </body>
 
 </html>
+
