@@ -52,8 +52,12 @@ let   volumeHudTimer = null;
 function showVolumeHud() {
   volumeTextEl.textContent = Math.round(music.volume * 100) + '%';
   volumeHud.classList.add('visible');
+  document.body.classList.add('vol-hud-active');
   clearTimeout(volumeHudTimer);
-  volumeHudTimer = setTimeout(() => volumeHud.classList.remove('visible'), 1800);
+  volumeHudTimer = setTimeout(() => {
+    volumeHud.classList.remove('visible');
+    document.body.classList.remove('vol-hud-active');
+  }, 1800);
 }
 
 /* ══════════════════════════════════════════════
@@ -68,6 +72,15 @@ function adjustVolume(delta) {
    键盘事件（使用标准 e.key，替代已废弃的 e.keyCode）
    ══════════════════════════════════════════════ */
 function handleKeyDown(e) {
+  // 如果当前焦点在输入框中，则不触发全局快捷键（除了 Escape）
+  if (document.activeElement && document.activeElement.tagName === 'INPUT') {
+    if (e.key === 'Escape') {
+      if (window._pomKeyEsc) window._pomKeyEsc();
+      document.activeElement.blur();
+    }
+    return;
+  }
+
   switch (e.key) {
     case 'ArrowLeft':  changeTrack(-1);                        break;
     case 'ArrowRight': changeTrack(1);                         break;
@@ -76,6 +89,15 @@ function handleKeyDown(e) {
     case ' ':          e.preventDefault(); togglePlay();       break;
     case 'Enter':      toggleFullscreen();                     break;
     case 'F11':        e.preventDefault(); toggleFullscreen(); break;
+    case 'p':
+    case 'P':          e.preventDefault(); if (window._pomKeyP)   window._pomKeyP();   break;
+    case 'r':
+    case 'R':          e.preventDefault(); if (window._pomKeyR)   window._pomKeyR();   break;
+    case 'l':
+    case 'L':          e.preventDefault(); if (window._pomKeyL)   window._pomKeyL();   break;
+    case "'":          e.preventDefault(); if (window._pomKeyInt) window._pomKeyInt(); break;
+    case '-':          e.preventDefault(); if (window._pomKeyExt) window._pomKeyExt(); break;
+    case 'Escape':     e.preventDefault(); if (window._pomKeyEsc) window._pomKeyEsc(); break;
   }
 }
 
@@ -83,6 +105,8 @@ function handleKeyDown(e) {
    滚轮事件（使用标准 deltaY，替代非标准 wheelDelta）
    ══════════════════════════════════════════════ */
 function handleWheel(e) {
+  // 如果滚轮事件发生在番茄钟相关面板上，则不触发音量调节
+  if (e.target.closest('#pom-panel, #pom-todo-panel, #pom-fab, #pom-fab-zone')) return;
   adjustVolume(e.deltaY < 0 ? 0.05 : -0.05);
 }
 
@@ -104,8 +128,16 @@ let touchStartX = 0;
 let touchStartY = 0;
 let lastTouchY  = 0;
 let touchDir    = null; // null | 'vertical' | 'horizontal'
+let touchOnUI   = false; // 是否触摸在番茄钟面板 / FAB 上
 
 document.addEventListener('touchstart', e => {
+  // 首次触摸：标记为触摸设备，禁用快捷键 tooltip
+  if (!document.body.classList.contains('is-touch')) {
+    document.body.classList.add('is-touch');
+  }
+  // 如果触摸发生在番茄钟相关面板上（包括待办列表），忽略全局手势
+  touchOnUI = !!e.target.closest('#pom-panel, #pom-todo-panel, #pom-fab, #pom-fab-zone');
+  if (touchOnUI) { touchDir = null; return; }
   touchStartX = e.changedTouches[0].clientX;
   touchStartY = e.changedTouches[0].clientY;
   lastTouchY  = touchStartY;
@@ -115,6 +147,7 @@ document.addEventListener('touchstart', e => {
 // 必须为非 passive，才能在竖向滑动时调用 preventDefault()
 // 阻止移动端浏览器的"下拉刷新"默认行为
 document.addEventListener('touchmove', e => {
+  if (touchOnUI) return;
   const touch = e.changedTouches[0];
   const dx = touch.clientX - touchStartX;
   const dy = touch.clientY - touchStartY;
@@ -134,6 +167,7 @@ document.addEventListener('touchmove', e => {
 }, { passive: false });
 
 document.addEventListener('touchend', e => {
+  if (touchOnUI) { touchDir = null; return; }
   const touch = e.changedTouches[0];
   const dx = touch.clientX - touchStartX;
 

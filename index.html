@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-cn">
 
 <head>
@@ -22,14 +22,152 @@
 <body>
   <div id="main"></div>
 
+  <!-- 隐藏的感应区域，用于 AOD 开关显示 -->
+  <div id="aod-switch-zone"></div>
+  <!-- AOD 息屏模式开关 -->
+  <div id="aod-switch-wrap" aria-label="AOD 保护开关">
+    <span>AOD 保护</span>
+    <div id="aod-toggle" class="ios-toggle on">
+      <div class="ios-toggle-knob"></div>
+    </div>
+  </div>
+
   <!-- 音量 HUD -->
   <div id="volume-hud" aria-live="polite" aria-label="当前音量">
     <span id="volume-text">80%</span>
   </div>
 
+  <!-- 番茄钟悬浮按钮的靠近感应区域 -->
+  <div id="pom-fab-zone"></div>
+  <!-- 番茄钟悬浮按钮 -->
+  <div id="pom-fab" role="button" aria-label="番茄钟 [P]" data-key="P">🍅</div>
+
+  <!-- 番茄钟主面板 -->
+  <div id="pom-panel" role="dialog" aria-label="番茄钟计时器">
+    <!-- 任务名称输入框（运行时变为只读标签） -->
+    <!-- 任务名称输入框（运行时变为只读标签） -->
+    <input id="pom-task-input" type="text" placeholder="今天专注什么？" maxlength="20"
+           autocomplete="off" spellcheck="false" aria-label="任务名称">
+    <div id="pom-label">专注</div>
+    <!-- 中间主体：左圆环 + 右信息列 -->
+    <div id="pom-main-row">
+      <!-- 进度圆环 + 阶段图标 -->
+      <div id="pom-ring-wrap">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+          <circle id="pom-ring-bg" cx="60" cy="60" r="50"/>
+          <circle id="pom-ring-fg" cx="60" cy="60" r="50"/>
+        </svg>
+        <div id="pom-time">🍅</div>
+      </div>
+      <!-- 右侧：圆点进度 + 步进器 -->
+      <div id="pom-info-col">
+        <div id="pom-dots"></div>
+        <div id="pom-session-stepper">
+          <button id="pom-sess-dec" aria-label="减少番茄数">−</button>
+          <span id="pom-sess-count">4</span>
+          <button id="pom-sess-inc" aria-label="增加番茄数">＋</button>
+        </div>
+      </div>
+    </div>
+    <!-- 操作按钮（data-key 用于 CSS tooltip 显示快捷键）-->
+    <div id="pom-actions">
+      <button id="pom-btn-todo" class="pom-action-btn" data-key="L" aria-label="今日待办">
+        <span>📝</span>
+      </button>
+      <button id="pom-btn-toggle" class="pom-action-btn" data-key="P" aria-label="开始/暂停">
+        <span id="pom-toggle-icon">▶</span>
+      </button>
+      <button id="pom-btn-reset" class="pom-action-btn" data-key="R" aria-label="重置">
+        <span>↺</span>
+      </button>
+      <button id="pom-btn-close" class="pom-action-btn" data-key="Esc" aria-label="关闭">
+        <span>✕</span>
+      </button>
+    </div>
+    <!-- 中断记录栏（仅在专注期间显示） -->
+    <div id="pom-interrupt-bar">
+      <button id="pom-btn-int-interrupt" class="pom-int-btn" data-key="'">
+        <span>💭 内部</span>
+        <span id="pom-int-badge" class="pom-int-badge" style="display:none;">0</span>
+      </button>
+      <button id="pom-btn-ext-interrupt" class="pom-int-btn" data-key="-">
+        <span>💬 外部</span>
+        <span id="pom-ext-badge" class="pom-int-badge" style="display:none;">0</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 番茄钟阶段切换通知 -->
+  <div id="pom-notif" aria-live="polite"></div>
+
+  <!-- 今日待办/活动清单 面板 (Activity Inventory / To-Do) -->
+  <div id="pom-todo-panel" role="dialog" aria-label="待办事项">
+    <div class="todo-header">
+      <div class="todo-title-row" style="display: flex; gap: 8px; align-items: center;">
+        <!-- 自定义切换视图下拉菜单 -->
+        <div class="custom-dropdown" id="todo-view-dropdown">
+          <button class="dropdown-trigger" id="todo-view-trigger" aria-label="视图选择" type="button">
+            <span id="todo-view-text">📝 今日待办</span>
+            <svg class="dropdown-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 1L5 5L9 1" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="dropdown-menu" id="todo-view-menu">
+            <!-- 动态滑动的高亮光标 / 粘连流体效果 -->
+            <div class="dropdown-highlight" id="todo-view-highlight"></div>
+            <div class="dropdown-item active" data-value="today">📝 今日待办</div>
+            <div class="dropdown-item" data-value="inventory">📦 活动清单</div>
+            <div class="dropdown-item" data-value="history">🕒 历史记录</div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button id="todo-close-btn" class="todo-icon-btn" data-key="Esc" aria-label="关闭面板">✕</button>
+      </div>
+    </div>
+    
+<!-- 列表容器：包裹所有可滚动的列表并隐藏溢出，防止皮筋回弹时元素跨过边界 -->
+    <div class="todo-list-container" style="flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; position: relative;">
+      <!-- 今日待办列表 -->
+      <div class="todo-list" id="todo-list">
+        <!-- 动态从 js 渲染 -->
+      </div>
+
+      <!-- 活动清单列表 -->
+      <div class="todo-list" id="todo-inv-list" style="display: none;">
+        <!-- 动态从 js 渲染 -->
+      </div>
+
+      <!-- 历史记录展示区 -->
+      <div class="todo-list" id="todo-history-list" style="display: none;">       
+        <!-- 动态从 js 渲染 -->
+      </div>
+    </div>
+    
+    <!-- 底部添加区 -->
+    <div class="todo-add" id="todo-add-area">
+      <div style="display: flex; gap: 8px; width: 100%;">
+        <input type="text" id="todo-input" placeholder="添加新任务 (Enter)..." autocomplete="off" style="flex: 1;">
+        <!-- 给活动清单视图准备的极简添加按钮（隐藏状态） -->
+        <button id="todo-add-btn-simple" class="todo-add-btn" style="display: none; height: auto; padding: 0 16px;">添加</button>
+      </div>
+      <div class="todo-add-row" id="todo-est-row">
+        <span class="todo-est-label">预计番茄数：</span>
+        <div class="todo-est-stepper">
+          <button id="todo-est-minus">−</button>
+          <span id="todo-est-val">1</span>
+          <button id="todo-est-plus">＋</button>
+        </div>
+        <button id="todo-add-btn" class="todo-add-btn">添加</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 脚本置于 body 末尾：DOM 已就绪，无需等待 DOMContentLoaded -->
   <script src="js/clock.js"></script>
+  <script src="js/pomodoro.js"></script>
   <script src="js/audio.js"></script>
 </body>
 
 </html>
+

@@ -70,3 +70,80 @@ if ('serviceWorker' in navigator) {
    ══════════════════════════════════════════════ */
 const noSleep = new NoSleep();
 window.addEventListener('load', () => noSleep.enable(), { once: true });
+
+/* ══════════════════════════════════════════════
+   OLED 防烧屏空闲检测 (Idle Mode / Screensaver)
+   在长时间(默认2分钟)无任何鼠标、键盘或触摸交互时
+   切换为全黑文字+细框阴影的「空心字」，配合像素平移杜绝烧屏。
+   ══════════════════════════════════════════════ */
+let oledIdleTime = 0;
+const OLED_IDLE_TIMEOUT = 120; // 120秒（2分钟）进入防烧屏待机
+
+function resetOledIdle() {
+  oledIdleTime = 0;
+  if (document.body.classList.contains('oled-idle-mode')) {
+    document.body.classList.remove('oled-idle-mode');
+  }
+}
+
+// 监听常用交互动作重置计时器
+window.addEventListener('mousemove', resetOledIdle, { passive: true });
+window.addEventListener('keydown', resetOledIdle, { passive: true });
+window.addEventListener('touchstart', resetOledIdle, { passive: true });
+window.addEventListener('click', resetOledIdle, { passive: true });
+window.addEventListener('wheel', resetOledIdle, { passive: true });
+
+setInterval(() => {
+  oledIdleTime++;
+  if (oledIdleTime >= OLED_IDLE_TIMEOUT && typeof aodEnabled !== "undefined" && aodEnabled) {
+    document.body.classList.add('oled-idle-mode');
+  }
+}, 1000);
+
+/* ══════════════════════════════════════════════
+   AOD 行为开关选项 (可使用 localStorage 记录用户设置)
+   ══════════════════════════════════════════════ */
+let aodEnabled = true; // 默认开启防烧屏AOD
+
+function initAodToggle() {
+  const toggleWrap = document.getElementById('aod-switch-wrap');
+  const toggleBtn = document.getElementById('aod-toggle');
+  
+  if (!toggleBtn) return;
+  
+  // 恢复状态
+  const savedState = localStorage.getItem('aodEnabled');
+  if (savedState === 'false') {
+    aodEnabled = false;
+    toggleBtn.classList.remove('on');
+  } else {
+    aodEnabled = true;
+    toggleBtn.classList.add('on');
+  }
+
+  // 点击事件
+  toggleBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    aodEnabled = !aodEnabled;
+    
+    // UI 动画切换
+    if (aodEnabled) {
+      toggleBtn.classList.add('on');
+      localStorage.setItem('aodEnabled', 'true');
+    } else {
+      toggleBtn.classList.remove('on');
+      localStorage.setItem('aodEnabled', 'false');
+      // 如果当前正在息屏模式中，被秒关了，则瞬间退出息屏
+      if (document.body.classList.contains('oled-idle-mode')) {
+        document.body.classList.remove('oled-idle-mode');
+        oledIdleTime = 0;
+      }
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', initAodToggle);
+
+// 修改拦截机制：如果 AOD 是关的，永远不去加类名
+
+
