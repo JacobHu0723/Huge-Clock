@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 /* ══════════════════════════════════════════════
    番茄钟（Pomodoro Timer）
    ──────────────────────────────────────────────
@@ -532,6 +532,26 @@ window._pomSkip = function(seconds = 10) {
   console.log(`%c[Debug] %c番茄钟已快进至剩余 ${seconds} 秒`, 'color: #ff7043; font-weight: bold;', 'color: inherit;');
   return `快进成功: 剩 ${seconds} 秒`;
 };
+
+window._pomNextDay = function() {
+  const currentDay = pomGetDateStr();
+  if (pomTodos.length > 0) {
+    if (pomHistory[currentDay]) {
+      pomHistory[currentDay] = pomHistory[currentDay].concat(pomTodos);
+    } else {
+      pomHistory[currentDay] = [...pomTodos];
+    }
+  }
+  pomTodos = [];
+  pomCurrentTodoId = null;
+  pomSaveTodos();
+  
+  if (typeof pomRenderTodos === 'function' && pomViewMode === 'today') pomRenderTodos();
+  if (typeof pomRenderHistory === 'function' && pomViewMode === 'history') pomRenderHistory();
+  
+  console.log(`%c[Debug] %c已模拟进入下一天，当前待办已归档至 ${currentDay}`, 'color: #3498db; font-weight: bold;', 'color: inherit;');
+  return "模拟跨天完成，任务已归档";
+};
 // ── 今日待办逻辑 ──────────────────────────────
 // 获取当前本地日期字符串 (YYYY-MM-DD)
 function pomGetDateStr() {
@@ -938,14 +958,87 @@ function pomRenderHistory() {
     todoHistListEl.innerHTML = `<div class="hist-empty">暂无历史记录</div>`;
     return;
   }
-  dates.forEach(date => {
-    const header = document.createElement('div');
-    header.className = 'hist-date';
-    header.textContent = date;
-    todoHistListEl.appendChild(header);
-    pomHistory[date].forEach(item => {
-      const el = document.createElement('div');
-      el.className = `todo-item ${item.completed ? 'completed' : ''}`;
+  dates.forEach((date, index) => {
+    const tasks = pomHistory[date];
+    if (!tasks || tasks.length === 0) return;
+
+    let totalTasks = tasks.length;
+    let completedCount = 0;
+    
+    let totalDone = 0; // 日总番茄（无论是否完成任务，付出的时间都需要留存记录）
+    let totalInt = 0;
+    let totalExt = 0;
+    
+    let completedDonePoms = 0;
+    let completedEstPoms = 0;
+
+    tasks.forEach(t => {
+      totalDone += t.done || 0;
+      totalInt += t.intInterrupts || 0;
+      totalExt += t.extInterrupts || 0;
+      if (t.completed) {
+        completedCount++;
+        completedDonePoms += t.done || 0;
+        completedEstPoms += t.est || 0;
+      }
+    });
+
+    const completionRate = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
+    
+    // 结项误差：仅对已经打勾（completed）的任务计算估算偏差
+    const diff = completedDonePoms - completedEstPoms;
+    let diffClass = diff > 0 ? 'warn' : (diff < 0 ? 'good' : 'neutral');
+    let diffSign = diff > 0 ? '+' : '';
+    let diffDisplay = completedCount === 0 ? '-' : `${diffSign}${diff}`;
+    
+    let interruptsTotal = totalInt + totalExt;
+    let intClass = interruptsTotal > (totalDone * 1.5) && totalDone > 0 ? 'warn' : (interruptsTotal === 0 ? 'good' : 'neutral');
+
+    const groupEl = document.createElement('div');
+    // 默认展开第一天（最新的一天），其余折叠
+    groupEl.className = `hist-group ${index === 0 ? 'expanded' : ''}`;
+    groupEl.style.marginBottom = '12px';
+
+    // 格式化日期：加上星期几
+    let dStr = date;
+    try {
+      const dObj = new Date(date);
+      const days = ['日','一','二','三','四','五','六'];
+      dStr = `${date} (周${days[dObj.getDay()]})`;
+    } catch(e) {}
+
+    let html = `
+      <div class="hist-summary" title="点击展开/折叠">
+        <div class="hist-summary-head">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <div class="hist-date">${dStr}</div>
+            <div class="hist-completion">达成: ${completedCount}/${totalTasks} 项 (${completionRate}%)</div>
+          </div>
+          <div class="hist-toggle-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </div>
+        </div>
+        <div class="hist-stats">
+          <div class="hist-stat-item" title="本日内专注执行过的所有番茄数总量">
+            <span class="hist-stat-val">${totalDone}</span>
+            <span class="hist-stat-label">日总番茄</span>
+          </div>
+          <div class="hist-stat-item" title="仅计算已完成任务的「预估番茄」与「实际花费」之差">
+            <span class="hist-stat-val ${diffClass}">${diffDisplay}</span>
+            <span class="hist-stat-label">结项误差</span>
+          </div>
+          <div class="hist-stat-item" title="累计内部/外部被打断的次数汇总">
+            <span class="hist-stat-val ${intClass}">${totalInt}/${totalExt}</span>
+            <span class="hist-stat-label">内/外中断</span>
+          </div>
+        </div>
+      </div>
+      <div class="hist-tasks-wrapper">
+        <div class="hist-tasks-inner">
+          <div class="hist-tasks" style="margin-bottom: 4px;">
+    `;
+
+    tasks.forEach(item => {
       let poms = '';
       for (let i = 0; i < item.est; i++) {
         if (i < item.done) poms += '🍅';
@@ -955,22 +1048,53 @@ function pomRenderHistory() {
           poms += '🍅';
       }
 
-      let interruptsHtml = '';
-      const intCount = item.intInterrupts || 0;
-      const extCount = item.extInterrupts || 0;
-      if (intCount > 0 || extCount > 0) {
-        interruptsHtml = `<div class="todo-interrupts" style="margin-left: 10px; margin-top: 0;">`;
-        if (intCount > 0) interruptsHtml += `<span title="内部中断: ${intCount}次">💭 ${intCount}</span>`;
-        if (extCount > 0) interruptsHtml += `<span title="外部中断: ${extCount}次">💬 ${extCount}</span>`;
-        interruptsHtml += `</div>`;
+      let intsHtml = '';
+      const tInt = item.intInterrupts || 0;
+      const tExt = item.extInterrupts || 0;
+      if (tInt > 0 || tExt > 0) {
+        if (tInt > 0) intsHtml += `<span title="内部中断: ${tInt}次">💭${tInt}</span>`;
+        if (tExt > 0) intsHtml += `<span title="外部中断: ${tExt}次">💬${tExt}</span>`;
+      } else {
+        intsHtml = '<span style="opacity:0.3">无中断</span>';
       }
 
-      el.innerHTML = `<div class="todo-main-row"><div class="todo-info" style="padding-left: 8px;"><div class="todo-name" title="${item.text}">${item.text}</div><div style="display:flex; align-items:center;"><div class="todo-poms">${poms}</div>${interruptsHtml}</div></div></div>`;
-        todoHistListEl.appendChild(el);
+      let taskDiffText = '';
+      let taskDiffClass = '';
+      if (item.completed) {
+        let taskDiff = item.done - item.est;
+        taskDiffClass = taskDiff > 0 ? 'over' : (taskDiff < 0 ? 'under' : 'exact');
+        taskDiffText = `预 ${item.est} / 实 ${item.done}`;
+      } else {
+        taskDiffClass = 'uncompleted';
+        taskDiffText = `预 ${item.est} / 实 ${item.done}`;
+      }
+
+      html += `
+        <div class="hist-task-item ${item.completed ? 'completed' : 'uncompleted'}">
+          <div class="hist-task-main">
+            <div class="hist-task-name" title="${item.text}">${item.text}</div>
+            <div class="hist-task-diff ${taskDiffClass}">${taskDiffText}</div>
+          </div>
+          <div class="hist-task-details">
+            <div class="hist-task-poms">${poms}</div>
+            <div class="hist-task-ints">${intsHtml}</div>
+          </div>
+        </div>
+      `;
     });
+
+    html += `</div></div></div>`;
+    groupEl.innerHTML = html;
+    
+    // 绑定点击事件，处理展开/折叠
+    const summaryEl = groupEl.querySelector('.hist-summary');
+    summaryEl.addEventListener('click', (e) => {
+      groupEl.classList.toggle('expanded');
+    });
+
+    todoHistListEl.appendChild(groupEl);
   });
-}
-function pomToggleTodoPanel(forceStage) {
+}function pomToggleTodoPanel(forceStage) {
   if (typeof forceStage === 'boolean') {
     if (pomTodoVisible === forceStage) return; // 如果状态一致则直接返回
     pomTodoVisible = forceStage;
@@ -1199,3 +1323,8 @@ document.querySelectorAll('.todo-list').forEach(list => {
     }, 400);
   });
 });
+
+
+
+
+

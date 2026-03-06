@@ -117,7 +117,7 @@
     </div>
     
 <!-- 列表容器：包裹所有可滚动的列表并隐藏溢出，防止皮筋回弹时元素跨过边界 -->
-    <div class="todo-list-container" style="flex: 1; overflow: hidden; display: flex; flex-direction: column; position: relative;">
+    <div class="todo-list-container" style="flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; position: relative;">
       <!-- 今日待办列表 -->
       <div class="todo-list" id="todo-list">
         <!-- 动态从 js 渲染 -->

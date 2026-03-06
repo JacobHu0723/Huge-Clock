@@ -964,11 +964,17 @@ body.is-touch .todo-icon-btn[data-key]::after {
 
 .todo-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding-right: 4px;
+  padding-bottom: 20px;
+}
+
+.todo-list > * {
+  flex-shrink: 0;
 }
 
 .todo-list::-webkit-scrollbar {
@@ -1114,21 +1120,160 @@ body.is-touch .todo-icon-btn[data-key]::after {
   background: rgba(255, 0, 0, 0.1);
 }
 
+.hist-group {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  overflow: hidden;
+  /* 调整 margin-bottom，原本的 todo-list 有 gap: 10px，所以这里不需要太多额外边距 */
+}
+
+.hist-summary {
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.hist-summary-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
 .hist-date {
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(218, 226, 238, 0.95);
+  letter-spacing: 0.05em;
+}
+
+.hist-completion {
+  font-size: 12px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.4);
-  margin-top: 8px;
-  margin-bottom: 4px;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
-  padding-bottom: 4px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.hist-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.hist-stat-item {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  padding: 8px 4px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.hist-stat-val {
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #ff7043;
+  line-height: 1;
+}
+
+.hist-stat-val.good { color: #81c784; }
+.hist-stat-val.warn { color: #e57373; }
+.hist-stat-val.neutral { color: rgba(255, 255, 255, 0.85); }
+
+.hist-stat-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.hist-tasks {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hist-task-item {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+  border: 1px solid transparent;
+  transition: background 0.2s;
+  gap: 6px;
+}
+
+.hist-task-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.hist-task-item.completed {
+  opacity: 0.65;
+}
+
+.hist-task-item.completed .hist-task-name {
+  text-decoration: line-through;
+}
+
+.hist-task-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hist-task-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(218, 226, 238, 0.95);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.hist-task-diff {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  margin-left: 8px;
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.hist-task-diff.over { color: #e57373; }
+.hist-task-diff.under { color: #5c9fd6; }
+.hist-task-diff.exact { color: rgba(255, 255, 255, 0.4); }
+
+.hist-task-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hist-task-poms {
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.hist-task-ints {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  display: flex;
+  gap: 8px;
 }
 
 .hist-empty {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 66px; /* 匹配单张卡片高度 */
+  height: 66px;
   color: rgba(255, 255, 255, 0.4);
   font-size: 13px;
 }
@@ -1334,3 +1479,47 @@ body.is-touch .todo-icon-btn[data-key]::after {
 
 
 
+
+  /* 历史记录折叠效果 */
+  .hist-summary {
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+  }
+  .hist-summary:active {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  @media (hover: hover) {
+    .hist-summary:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+  }
+  
+  .hist-toggle-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    color: rgba(255,255,255,0.6);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .hist-group.expanded .hist-toggle-icon {
+    transform: rotate(180deg);
+  }
+  
+  .hist-tasks-wrapper {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .hist-group.expanded .hist-tasks-wrapper {
+    grid-template-rows: 1fr;
+  }
+  
+  .hist-tasks-inner {
+    min-height: 0;
+    overflow: hidden;
+  }
