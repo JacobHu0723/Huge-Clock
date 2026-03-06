@@ -1,4 +1,8 @@
-/* ── 页面基础 ── */
+﻿/* ── 页面基础 ── */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
 html,
 body {
   height: 100%;
@@ -155,7 +159,7 @@ body:has(#pom-panel:not(.running):not(.visible)):has(#pom-todo-panel:not(.visibl
   padding: 16px 20px 12px;
   width: min(276px, calc(100vw - 36px));
   box-sizing: border-box;
-  border-radius: 24px;
+  border-radius: 36px;
   background: rgba(255, 255, 255, 0.07);
   backdrop-filter: blur(32px) saturate(200%) brightness(1.08);
   -webkit-backdrop-filter: blur(32px) saturate(200%) brightness(1.08);
@@ -368,7 +372,7 @@ body.is-touch #pom-fab::after {
   left: 50%;
   transform: translateX(-50%) translateY(5px);
   padding: 3px 8px;
-  border-radius: 6px;
+  border-radius: 9999px;
   background: rgba(20, 24, 32, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.10);
   font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
@@ -443,7 +447,7 @@ body.is-touch #pom-fab::after {
   gap: 6px;
   padding: 0 14px;
   height: 36px;
-  border-radius: 18px;
+  border-radius: 9999px;
   border: 1px solid rgba(255, 255, 255, 0.11);
   background: rgba(255, 255, 255, 0.06);
   color: rgba(200, 210, 228, 0.9);
@@ -471,7 +475,7 @@ body.is-touch #pom-fab::after {
   background: rgba(255, 112, 67, 0.2);
   border: 1px solid rgba(255, 112, 67, 0.3);
   color: rgba(255, 150, 100, 0.95);
-  border-radius: 10px;
+  border-radius: 9999px;
   padding: 1px 6px;
   font-size: 12px;
   font-weight: 700;
@@ -497,7 +501,7 @@ body.is-touch .pom-int-btn::after {
   left: 50%;
   transform: translateX(-50%) translateY(5px);
   padding: 3px 8px;
-  border-radius: 6px;
+  border-radius: 9999px;
   background: rgba(20, 24, 32, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.10);
   font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
@@ -572,7 +576,7 @@ body.vol-hud-active #pom-notif {
   box-sizing: border-box;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 12px;
+  border-radius: 36px;
   color: rgba(218, 226, 240, 0.92);
   font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
   font-size: 13px;
@@ -709,7 +713,7 @@ body.vol-hud-active #pom-notif {
   flex-direction: column;
   gap: 12px;
   padding: 18px 20px;
-  border-radius: 20px;
+  border-radius: 32px;
   background: rgba(255, 255, 255, 0.07);
   backdrop-filter: blur(32px) saturate(200%) brightness(1.08);
   -webkit-backdrop-filter: blur(32px) saturate(200%) brightness(1.08);
@@ -782,7 +786,7 @@ to {
   background: rgba(255, 255, 255, 0.08);
   /* 提亮点，质感更好 */
   border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
+  border-radius: 9999px;
   padding: 8px 12px;
   font-size: 15px;
   font-weight: 600;
@@ -834,7 +838,7 @@ to {
   background: rgba(26, 26, 28, 0.65);
   /* 降低透明度让底层文字不易干扰 */
   border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 6px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(40px) saturate(200%);
@@ -916,8 +920,9 @@ to {
   font-size: 16px;
   cursor: pointer;
   border-radius: 50%;
-  width: 28px;
+  width: 30px;
   height: 30px;
+  padding: 0; /* 统一下按钮容器，防止内边距破坏圆形 */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -944,7 +949,7 @@ body.is-touch .todo-icon-btn[data-key]::after {
   left: 50%;
   transform: translateX(-50%) translateY(5px);
   padding: 3px 8px;
-  border-radius: 6px;
+  border-radius: 9999px;
   background: rgba(20, 24, 32, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.10);
   font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
@@ -999,7 +1004,7 @@ body.is-touch .todo-icon-btn[data-key]::after {
   min-height: 66px; /* 修改为 min-height 允许内部下拉菜单撑开高度 */
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  border-radius: 36px;
   transition: background 0.2s, border-color 0.2s;
   cursor: default;
 }
@@ -1092,7 +1097,9 @@ body.is-touch .todo-icon-btn[data-key]::after {
   color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   font-size: 16px;
-  padding: 6px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   border-radius: 50%;
   transition: color 0.2s, transform 0.2s;
   display: flex;
@@ -1111,7 +1118,9 @@ body.is-touch .todo-icon-btn[data-key]::after {
   color: rgba(255, 0, 0, 0.4);
   cursor: pointer;
   font-size: 14px;
-  padding: 6px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   border-radius: 50%;
   transition: color 0.2s, background 0.2s;
   display: flex;
@@ -1129,7 +1138,7 @@ body.is-touch .todo-icon-btn[data-key]::after {
   flex-direction: column;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
+  border-radius: 32px;
   overflow: hidden;
   /* 调整 margin-bottom，原本的 todo-list 有 gap: 10px，所以这里不需要太多额外边距 */
 }
@@ -1169,7 +1178,7 @@ body.is-touch .todo-icon-btn[data-key]::after {
 .hist-stat-item {
   flex: 1;
   background: rgba(255, 255, 255, 0.03);
-  border-radius: 10px;
+  border-radius: 9999px;
   padding: 8px 4px;
   text-align: center;
   display: flex;
@@ -1207,7 +1216,7 @@ body.is-touch .todo-icon-btn[data-key]::after {
   flex-direction: column;
   padding: 10px 12px;
   background: rgba(255, 255, 255, 0.02);
-  border-radius: 10px;
+  border-radius: 9999px;
   border: 1px solid transparent;
   transition: background 0.2s;
   gap: 6px;
@@ -1247,7 +1256,7 @@ body.is-touch .todo-icon-btn[data-key]::after {
   margin-left: 8px;
   flex-shrink: 0;
   padding: 2px 6px;
-  border-radius: 6px;
+  border-radius: 9999px;
   background: rgba(255, 255, 255, 0.05);
 }
 
@@ -1315,7 +1324,7 @@ body.is-touch .todo-icon-btn[data-key]::after {
   box-sizing: border-box;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
+  border-radius: 9999px;
   padding: 10px 14px;
   color: #fff;
   font-size: 14px;
@@ -1349,7 +1358,7 @@ body.is-touch .todo-icon-btn[data-key]::after {
   align-items: center;
   gap: 8px;
   background: rgba(0, 0, 0, 0.25);
-  border-radius: 20px;
+  border-radius: 32px;
   padding: 4px 10px;
 }
 
@@ -1377,12 +1386,16 @@ body.is-touch .todo-icon-btn[data-key]::after {
 .todo-add-btn {
   background: rgba(255, 112, 67, 0.85);
   border: none;
-  border-radius: 10px;
-  padding: 7px 18px;
+  border-radius: 9999px;
+  padding: 7px 18px 9px;
   color: #fff;
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1; /* 修正上下不居中的问题，因字体基线问题适度加大了下内边距 */
   transition: opacity 0.2s, transform 0.15s;
 }
 
@@ -1446,10 +1459,14 @@ body.is-touch .todo-icon-btn[data-key]::after {
   background: rgba(255, 255, 255, 0.1);
   border: none;
   color: rgba(255,255,255,0.7);
-  padding: 5px 12px;
-  border-radius: 8px;
+  padding: 5px 12px 6px;
+  border-radius: 9999px;
   font-size: 12px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
   transition: background 0.2s, transform 0.15s;
 }
 .inv-est-cancel:hover {
@@ -1459,11 +1476,15 @@ body.is-touch .todo-icon-btn[data-key]::after {
   background: rgba(255, 112, 67, 0.85);
   border: none;
   color: #fff;
-  padding: 5px 12px;
-  border-radius: 8px;
+  padding: 5px 12px 6px;
+  border-radius: 9999px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
   transition: background 0.2s, transform 0.15s;
 }
 .inv-est-confirm:hover {
@@ -1611,7 +1632,7 @@ body.oled-idle-mode #volume-hud {
   .ios-toggle {
     width: 44px;
     height: 24px;
-    border-radius: 20px;
+    border-radius: 32px;
     background-color: rgba(120, 120, 128, 0.4);
     position: relative;
     cursor: pointer;

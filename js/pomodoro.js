@@ -1243,7 +1243,7 @@ function pomSetViewMode(mode) {
   } else if (mode === 'inventory') {
     todoInvListEl.style.display = 'flex';
     todoEstRow.style.display = 'none'; // 隐藏预计番茄数
-    if (todoAddBtnSimple) todoAddBtnSimple.style.display = 'block'; // 显示单输入框旁的添加按钮
+    if (todoAddBtnSimple) todoAddBtnSimple.style.display = 'inline-flex'; // 显示单输入框旁的添加按钮
     pomRenderInventory();
     todoInvListEl.classList.add('list-fade-in');
   } else {
