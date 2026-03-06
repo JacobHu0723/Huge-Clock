@@ -79,24 +79,41 @@ window.addEventListener('load', () => noSleep.enable(), { once: true });
 let oledIdleTime = 0;
 const OLED_IDLE_TIMEOUT = 120; // 120秒（2分钟）进入防烧屏待机
 
-function resetOledIdle() {
+// 独立的鼠标隐藏逻辑参数
+let mouseIdleTime = 0;
+const MOUSE_IDLE_TIMEOUT = 5; // 无操作5秒后隐藏鼠标光标
+
+function resetIdeState() {
   oledIdleTime = 0;
+  mouseIdleTime = 0;
+  
   if (document.body.classList.contains('oled-idle-mode')) {
     document.body.classList.remove('oled-idle-mode');
+  }
+  
+  if (document.body.classList.contains('hide-cursor')) {
+    document.body.classList.remove('hide-cursor');
   }
 }
 
 // 监听常用交互动作重置计时器
-window.addEventListener('mousemove', resetOledIdle, { passive: true });
-window.addEventListener('keydown', resetOledIdle, { passive: true });
-window.addEventListener('touchstart', resetOledIdle, { passive: true });
-window.addEventListener('click', resetOledIdle, { passive: true });
-window.addEventListener('wheel', resetOledIdle, { passive: true });
+window.addEventListener('mousemove', resetIdeState, { passive: true });
+window.addEventListener('keydown', resetIdeState, { passive: true });
+window.addEventListener('touchstart', resetIdeState, { passive: true });
+window.addEventListener('click', resetIdeState, { passive: true });
+window.addEventListener('wheel', resetIdeState, { passive: true });
 
 setInterval(() => {
   oledIdleTime++;
+  mouseIdleTime++;
+  
   if (oledIdleTime >= OLED_IDLE_TIMEOUT && typeof aodEnabled !== "undefined" && aodEnabled) {
     document.body.classList.add('oled-idle-mode');
+  }
+  
+  // 如果超过了设定的秒数且不在隐藏状态，则自动隐藏光标
+  if (mouseIdleTime >= MOUSE_IDLE_TIMEOUT) {
+    document.body.classList.add('hide-cursor');
   }
 }, 1000);
 

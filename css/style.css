@@ -1575,8 +1575,11 @@ body.oled-idle-mode #volume-hud {
   opacity: 0 !important;
 }
 
-
-
+/* 隐藏鼠标光标 */
+body.hide-cursor,
+body.hide-cursor * {
+  cursor: none !important;
+}
 
   /* ══════════════════════════════════════════════
      AOD 息屏模式保护开关 (iOS Style)
