@@ -24,7 +24,7 @@
 
 Huge-Clock offers an intuitive control scheme matching how you prefer to interact:
 
-| Action | Desktop (Mouse / Keyboard) | Mobile (Touch / Geastures) |
+| Action | Desktop (Mouse / Keyboard) | Mobile (Touch / Gestures) |
 | :--- | :--- | :--- |
 | **Play / Pause Music** | Click the clock / `Space` | Tap the clock |
 | **Switch Audio Track** | `←` / `→` arrow keys | Swipe Left / Right on screen |
