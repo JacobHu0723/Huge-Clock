@@ -144,6 +144,13 @@ document.addEventListener('touchstart', e => {
   touchDir    = null;
 }, { passive: true });
 
+// 监听鼠标移动，以恢复鼠标悬停时的 UI 状态（针对同时支持触控和鼠标的设备）
+document.addEventListener('pointermove', e => {
+  if (e.pointerType === 'mouse' && document.body.classList.contains('is-touch')) {
+    document.body.classList.remove('is-touch');
+  }
+}, { passive: true });
+
 // 必须为非 passive，才能在竖向滑动时调用 preventDefault()
 // 阻止移动端浏览器的"下拉刷新"默认行为
 document.addEventListener('touchmove', e => {
