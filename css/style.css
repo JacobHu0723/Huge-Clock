@@ -408,6 +408,53 @@ body.is-touch #pom-fab::after {
   color: rgba(255, 130, 130, 0.90);
 }
 
+/* 气泡提示基础样式 (类 iOS 风格) */
+.pom-reset-bubble {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translate(-50%, 0) scale(0.5);
+  background: rgba(40, 40, 40, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 10px 18px; /* 稍微大一点，更显眼 */
+  border-radius: 100px;
+  font-size: 15px; /* 加大字体 */
+  font-weight: 500;
+  color: #fff;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 10;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25); /* 稍微增强阴影 */
+}
+
+/* 气泡激活态：统一高度，更贴近按钮 */
+.pom-reset-bubble.active {
+  transform: translate(-50%, -50px) scale(1);
+  opacity: 1;
+}
+
+/* 气泡释放确认态：高亮/放大反馈 */
+.pom-reset-bubble.ready {
+  background: rgba(255, 69, 58, 0.9); /* 类 iOS 破坏性操作红色 */
+  transform: translate(-50%, -55px) scale(1.05);
+  box-shadow: 0 12px 24px rgba(255, 69, 58, 0.4);
+}
+
+/* 长按时平滑隐藏原本的快捷键气泡（动画衔接） */
+#pom-btn-reset.hide-shortcut::after {
+  opacity: 0 !important;
+  transform: translateX(-50%) translateY(5px) !important;
+}
+
+/* 为重启按钮添加 position relative 以定位气泡，并禁止默认的触控滑动行为（防止触发浏览器或页面的滚动从而中断手势） */
+#pom-btn-reset {
+  position: relative;
+  touch-action: none; 
+}
+
 /* ── 中断记录栏 ── */
 #pom-interrupt-bar {
   display: flex;

@@ -376,34 +376,54 @@ function pomKeyP() {
 function pomKeyR() {
   if (!pomVisible) return;
   pomPauseTimer();
-  pomPhaseIdx = 0;
-  pomTimeLeft = POM_PHASES[0].duration;
-  pomRounds = 0;
-  pomTotalFocusDone = 0;
-  let clearedInterrupts = false;
-
-  if (pomCurrentTodoId) {
-    const t = pomTodos.find(x => x.id === pomCurrentTodoId);
-    if (t) {
-      if (t.intInterrupts > 0 || t.extInterrupts > 0) clearedInterrupts = true;
-      t.intInterrupts = 0;
-      t.extInterrupts = 0;
-      t.done = 0;
-      t.completed = false;
-      pomSaveTodos();
-      if(pomViewMode === 'today') pomRenderTodos();
+  
+  if (pomPhaseIdx === 0) {
+    // 1. 当前在专注中 -> 重置当前计时
+    pomTimeLeft = POM_PHASES[0].duration;
+    // 重置当前未完成的中断数据
+    if (pomCurrentTodoId) {
+      const t = pomTodos.find(x => x.id === pomCurrentTodoId);
+      if (t) {
+        t.intInterrupts = 0;
+        t.extInterrupts = 0;
+        pomSaveTodos();
+      }
+    } else {
+      pomSessionIntInterrupts = 0;
+      pomSessionExtInterrupts = 0;
     }
+    pomNotify('🔄 计时已重置', false);
   } else {
-    if (pomSessionIntInterrupts > 0 || pomSessionExtInterrupts > 0) clearedInterrupts = true;
-    pomSessionIntInterrupts = 0;
-    pomSessionExtInterrupts = 0;
+    // 2. 当前在休息中(1或2) -> 跳过休息，进入下一个番茄状态
+    pomPhaseIdx = 0;
+    pomTimeLeft = POM_PHASES[0].duration;
+    pomNotify('⏭️ 已跳过休息，进入专注', false);
   }
   
-  if (clearedInterrupts) {
-    pomNotify('🔄 计时与中断数已重置', false);
-  } else {
-    pomNotify('🔄 计时已重置', false);
+  if(pomViewMode === 'today') pomRenderTodos();
+  pomRender();
+}
+
+// 长按倒退上一番茄钟的专项逻辑
+function revertOnePomodoro() {
+  pomPauseTimer();
+  pomPhaseIdx = 0;
+  pomTimeLeft = POM_PHASES[0].duration;
+  
+  // 核心回退：已经完成的专注次数减1，对应任务的打卡减1
+  if (pomTotalFocusDone > 0) pomTotalFocusDone--;
+  if (pomRounds > 0) pomRounds--;
+  
+  // 若有关联的待办事项，撤销其一次完成量
+  if (pomCurrentTodoId) {
+    const t = pomTodos.find(x => x.id === pomCurrentTodoId);
+    if (t && t.done > 0) {
+      t.done--;
+      t.completed = false; // 撤销完成状态
+      pomSaveTodos();
+    }
   }
+  if(pomViewMode === 'today') pomRenderTodos();
   pomRender();
 }
 // Esc：关闭面板
@@ -507,10 +527,91 @@ document.getElementById('pom-btn-toggle').addEventListener('click', e => {
   e.stopPropagation();
   if (pomRunning) pomPauseTimer(); else pomStartTimer();
 });
-document.getElementById('pom-btn-reset').addEventListener('click', e => {
+
+/* === 初始化气泡 DOM === */
+const resetBtn = document.getElementById('pom-btn-reset');
+const resetBubble = document.createElement('div');
+resetBubble.className = 'pom-reset-bubble';
+resetBubble.innerText = '上滑撤销番茄钟';
+resetBtn.appendChild(resetBubble);
+
+/* === 长按与上滑交互变量 === */
+let resetPressTimer = null;
+let resetIsLongPress = false;
+let resetStartY = 0;
+let resetBubbleReady = false;
+
+resetBtn.addEventListener('pointerdown', e => {
   e.stopPropagation();
-  pomKeyR();
+  // 只响应左键或单指触摸
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  
+  resetBtn.setPointerCapture(e.pointerId);
+  resetIsLongPress = false;
+  resetBubbleReady = false;
+  resetStartY = e.clientY;
+  
+  // 500ms 触发长按气泡
+  resetPressTimer = setTimeout(() => {
+    resetIsLongPress = true;
+    resetBtn.classList.add('hide-shortcut'); // 隐藏原本默认快捷键气泡
+    resetBubble.classList.add('active');
+    // 提供触觉反馈 (如果在支持振动的移动端设备)
+    if (navigator.vibrate) navigator.vibrate(50); 
+  }, 500);
 });
+
+resetBtn.addEventListener('pointermove', e => {
+  if (!resetIsLongPress) return;
+  // 长按启动后，检测上滑幅度 (例如上移少于 40px)
+  const dy = resetStartY - e.clientY;
+  
+  if (dy > 40) {
+    if (!resetBubbleReady) {
+      resetBubbleReady = true;
+      resetBubble.classList.add('ready');
+      resetBubble.innerText = '释放以撤销';
+      if (navigator.vibrate) navigator.vibrate(50); // 滑动到位再次给反馈
+    }
+  } else {
+    if (resetBubbleReady) {
+      resetBubbleReady = false;
+      resetBubble.classList.remove('ready');
+      resetBubble.innerText = '上滑撤销番茄钟';
+    }
+  }
+});
+
+function handleResetEnd(e) {
+  clearTimeout(resetPressTimer);
+  
+  if (resetIsLongPress) {
+    // 处理长按结束
+    if (resetBubbleReady) {
+      revertOnePomodoro(); // 执行撤销逻辑
+      pomNotify('↩️ 已撤销上一个番茄钟', false);
+    }
+    // 恢复状态与气泡
+    resetBubble.classList.remove('active', 'ready');
+    resetBtn.classList.remove('hide-shortcut');
+    resetBubble.innerText = '上滑撤销番茄钟';
+  } else {
+    // 走正常点击流程，如果移动距离很短
+    const dy = Math.abs(resetStartY - e.clientY);
+    if (dy < 10) {
+      pomKeyR();
+    }
+    resetBtn.classList.remove('hide-shortcut');
+  }
+  
+  resetIsLongPress = false;
+  resetBubbleReady = false;
+  try { resetBtn.releasePointerCapture(e.pointerId); } catch(err){}
+}
+
+resetBtn.addEventListener('pointerup', handleResetEnd);
+resetBtn.addEventListener('pointercancel', handleResetEnd);
+
 document.getElementById('pom-btn-close').addEventListener('click', e => {
   e.stopPropagation();
   pomHide();
