@@ -1,5 +1,5 @@
 ﻿// 版本号变更会触发 Service Worker 更新并清除旧缓存
-const CACHE_VERSION = 'huge-clock-v33';
+const CACHE_VERSION = 'huge-clock-v34';
 
 const CACHE_FILES = [
   '/',
@@ -43,4 +43,5 @@ self.addEventListener('fetch', event => {
     caches.match(event.request)
       .then(response => response || fetch(event.request))
   );
+
 });
