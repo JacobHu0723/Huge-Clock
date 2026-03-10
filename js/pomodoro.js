@@ -181,14 +181,36 @@ function pomPlayChime() {
 // ── 发送系统通知 ──────────────────────────────
 function pomSystemNotify(msg) {
   if (!("Notification" in window)) return;
-  if (Notification.permission === "granted") {
-    new Notification("Huge Clock", { body: msg, icon: "favicon.ico" });
-  } else if (Notification.permission !== "denied") {
-    Notification.requestPermission().then(permission => {
-      if (permission === "granted") {
-        new Notification("Huge Clock", { body: msg, icon: "favicon.ico" });
+
+  const showNotification = () => {
+    try {
+      // 桌面端浏览器优先直接调用
+      new Notification("Huge Clock", { body: msg, icon: "favicon.ico" });
+    } catch (e) {
+      // 安卓等移动端浏览器会抛出 TypeError，要求必须使用 Service Worker
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(registration => {
+          registration.showNotification("Huge Clock", { body: msg, icon: "favicon.ico" });
+        });
       }
-    });
+    }
+  };
+
+  if (Notification.permission === "granted") {
+    showNotification();
+  } else if (Notification.permission !== "denied") {
+    try {
+      const promise = Notification.requestPermission();
+      if (promise && promise.then) {
+        promise.then(permission => {
+          if (permission === "granted") {
+            showNotification();
+          }
+        }).catch(e => console.warn("通知权限请求错误或被限制", e));
+      }
+    } catch (e) {
+      console.warn("请求通知权限时发生错误", e);
+    }
   }
 }
 // ── 通知横幅 ──────────────────────────────────
@@ -250,8 +272,15 @@ function pomTick() {
 }
 function pomStartTimer() {
   // 请求通知权限，防止在计时结时由于非用户点击导致浏览器拦截权限请求
-  if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
-    Notification.requestPermission();
+  try {
+    if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+      const promise = Notification.requestPermission();
+      if (promise && promise.catch) {
+        promise.catch(e => console.warn("通知权限请求被拒绝或需要用户交互", e));
+      }
+    }
+  } catch (e) {
+    console.warn("请求通知权限时发生错误", e);
   }
 
   // 开始计时时，如果是自己手动填写的未关联任务（或半途修改导致已解绑），自动在今日待办中新建一个并关联
