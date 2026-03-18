@@ -1,5 +1,5 @@
 ﻿// 版本号变更会触发 Service Worker 更新并清除旧缓存
-const CACHE_VERSION = 'huge-clock-v35';
+const CACHE_VERSION = 'huge-clock-v36';
 
 const CACHE_FILES = [
   '/',

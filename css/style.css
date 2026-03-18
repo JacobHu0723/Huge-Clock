@@ -1046,6 +1046,7 @@ body.is-touch .todo-icon-btn[data-key]::after {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 0;
   padding: 12px;
   min-height: 66px; /* 修改为 min-height 允许内部下拉菜单撑开高度 */
@@ -1157,6 +1158,13 @@ body.is-touch .todo-icon-btn[data-key]::after {
 .todo-play:hover {
   color: #ff7043;
   transform: scale(1.15);
+}
+
+.todo-btn-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .todo-del {

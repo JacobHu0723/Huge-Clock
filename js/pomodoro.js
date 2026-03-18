@@ -865,7 +865,7 @@ function pomRenderTodos() {
     }
 
     el.innerHTML = `
-      <div class="todo-main-row"><input type="checkbox" class="todo-chk" ${item.completed ? 'checked' : ''}><div class="todo-info"><div class="todo-name" title="${item.text}">${item.text}</div><div style="display:flex; align-items:center;"><div class="todo-poms">${poms}</div>${interruptsHtml}</div></div><button class="todo-play" title="应用此待办到番茄钟">▶</button><button class="todo-del" title="删除此待办">✕</button></div>`;
+      <div class="todo-main-row"><input type="checkbox" class="todo-chk" ${item.completed ? 'checked' : ''}><div class="todo-info"><div class="todo-name" title="${item.text}">${item.text}</div><div style="display:flex; align-items:center;"><div class="todo-poms">${poms}</div>${interruptsHtml}</div></div><button class="todo-play" title="应用此待办到番茄钟"><span class="todo-btn-glyph">▶</span></button><button class="todo-del" title="删除此待办"><span class="todo-btn-glyph">✕</span></button></div>`;
 
     // 允许点击预计番茄图标区域来修改番茄数
     const pomsContainer = el.querySelector('.todo-poms');
@@ -1027,11 +1027,15 @@ function pomRenderInventory() {
     todoInvListEl.innerHTML = `<div class="todo-empty-state">暂无活动清单，随时记录想做的事！</div>`;
     return;
   }
-  pomInventory.forEach(item => {
+  const sortedInventory = [...pomInventory].sort((a, b) => {
+    if (a.completed === b.completed) return 0;
+    return a.completed ? 1 : -1;
+  });
+  sortedInventory.forEach(item => {
     const el = document.createElement('div');
     el.className = `todo-item ${item.completed ? 'completed' : ''}`;
     el.innerHTML = `
-      <div class="todo-main-row"><div class="todo-info" style="padding-left: 8px;"><div class="todo-name" title="${item.text}">${item.text}</div></div><button class="todo-play" title="添加到今日待办" style="font-size: 14px; margin-right: 8px;">＋</button><button class="todo-del" title="删除此活动">✕</button></div>`;
+      <div class="todo-main-row"><div class="todo-info" style="padding-left: 8px;"><div class="todo-name" title="${item.text}">${item.text}</div></div><button class="todo-play todo-inv-add" title="添加到今日待办" style="margin-right: 8px;"><span class="todo-btn-glyph" style="font-size: 20px;">＋</span></button><button class="todo-del" title="删除此活动"><span class="todo-btn-glyph">✕</span></button></div>`;
     // 移入今日待办
     const addBtn = el.querySelector('.todo-play');
     addBtn.addEventListener('click', (e) => {
