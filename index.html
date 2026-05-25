@@ -122,6 +122,7 @@
         </div>
       </div>
       <div style="display: flex; gap: 8px;">
+        <button id="todo-import-btn" class="todo-icon-btn" aria-label="导入今日待办">⤓</button>
         <button id="todo-close-btn" class="todo-icon-btn" data-key="Esc" aria-label="关闭面板">✕</button>
       </div>
     </div>
@@ -159,6 +160,34 @@
           <button id="todo-est-plus">＋</button>
         </div>
         <button id="todo-add-btn" class="todo-add-btn">添加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 导入今日待办 -->
+  <div id="pom-import-backdrop" class="pom-import-backdrop" aria-hidden="true"></div>
+  <div id="pom-import-dialog" class="pom-import-dialog" role="dialog" aria-label="导入今日待办">
+    <div class="pom-import-shell">
+      <div class="pom-import-card">
+        <div class="pom-import-header">
+          <div class="pom-import-title">导入今日待办</div>
+          <button id="pom-import-close" class="todo-icon-btn" aria-label="关闭导入">✕</button>
+        </div>
+        <div class="pom-import-body">
+          <textarea id="pom-import-input" spellcheck="false" placeholder="粘贴导入内容，格式见下方示例..." aria-label="导入内容"></textarea>
+          <div class="pom-import-format">
+            <div class="pom-import-format-title">格式示例</div>
+            <pre id="pom-import-example">HC-IMPORT v1
+写周报 | 3
+阅读论文 | 2
+产品复盘 | 1</pre>
+            <div class="pom-import-hint">每行一条任务，使用“|”分隔：任务名 | 预估</div>
+          </div>
+        </div>
+        <div class="pom-import-actions">
+          <button id="pom-import-cancel" class="pom-import-btn ghost">取消</button>
+          <button id="pom-import-confirm" class="pom-import-btn primary">导入</button>
+        </div>
       </div>
     </div>
   </div>
