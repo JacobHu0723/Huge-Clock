@@ -1018,6 +1018,177 @@ body.is-touch .todo-icon-btn[data-key]::after {
   transform: translateX(-50%) translateY(0);
 }
 
+.pom-import-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 12, 16, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+  z-index: 9010;
+}
+
+.pom-import-backdrop.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.pom-import-dialog {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  box-sizing: border-box;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 9015;
+}
+
+.pom-import-dialog.visible {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.pom-import-shell {
+  width: 100%;
+  max-width: 520px;
+  transform: translateY(14px);
+  transition: transform 0.45s cubic-bezier(0.2, 1.15, 0.4, 1);
+  will-change: transform;
+}
+
+.pom-import-dialog.visible .pom-import-shell {
+  transform: translateY(0);
+}
+
+.pom-import-card {
+  width: 100%;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 32px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(32px) saturate(200%) brightness(1.08);
+  -webkit-backdrop-filter: blur(32px) saturate(200%) brightness(1.08);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1.5px 0 rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.92);
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.pom-import-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pom-import-title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.pom-import-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+}
+
+#pom-import-input {
+  width: 100%;
+  min-height: 140px;
+  max-height: 240px;
+  resize: vertical;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 18px;
+  padding: 12px 14px;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.55;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+#pom-import-input:focus {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.pom-import-format {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 10px 12px;
+}
+
+.pom-import-format-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 6px;
+}
+
+#pom-import-example {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(218, 226, 238, 0.9);
+  font-family: "SFMono-Regular", "JetBrains Mono", "Menlo", "Consolas", monospace;
+  white-space: pre-wrap;
+}
+
+.pom-import-hint {
+  margin-top: 6px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.pom-import-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.pom-import-btn {
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s, border-color 0.2s;
+}
+
+.pom-import-btn.ghost {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.pom-import-btn.primary {
+  background: rgba(255, 112, 67, 0.9);
+  color: #fff;
+}
+
+.pom-import-btn:hover {
+  transform: translateY(-1px);
+}
+
+.pom-import-btn:active {
+  transform: scale(0.97);
+}
+
 .todo-list {
   flex: 1;
   min-height: 0;
@@ -1209,6 +1380,37 @@ body.is-touch .todo-icon-btn[data-key]::after {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
+}
+
+.hist-summary-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hist-export-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(218, 226, 238, 0.9);
+  border-radius: 9999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.2s, transform 0.2s, border-color 0.2s;
+}
+
+.hist-export-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.28);
+  transform: translateY(-1px);
+}
+
+.hist-export-btn:active {
+  transform: scale(0.96);
 }
 
 .hist-date {
@@ -1471,8 +1673,20 @@ body.is-touch .todo-icon-btn[data-key]::after {
     transform: translateY(-50%) scale(0.95);
   }
 
-#pom-todo-panel.visible {
+  #pom-todo-panel.visible {
     transform: translateY(-50%) scale(1);
+  }
+
+  .pom-import-dialog {
+    padding: 22px 16px;
+  }
+
+  .pom-import-shell {
+    max-width: 420px;
+  }
+
+  .pom-import-card {
+    max-height: 85vh;
   }
 }
 .inv-est-dropdown {

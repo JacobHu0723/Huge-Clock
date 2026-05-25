@@ -35,6 +35,7 @@ let pomHistory = {}; // 形如 { "2023-10-01": [todos...], ... }
 let pomCurrentTodoId = null;
 let pomTodoEstValue  = 1;
 let pomTodoVisible   = false;
+let pomImportVisible = false;
 let pomViewMode   = 'today'; // 'today', 'inventory', 'history'
 // ── DOM 引用 ───────────────────────────────────
 const pomPanelEl  = document.getElementById('pom-panel');
@@ -67,6 +68,13 @@ const todoEstRow    = document.getElementById('todo-est-row');
 const todoEstValEl  = document.getElementById('todo-est-val');
 const todoAddBtn    = document.getElementById('todo-add-btn');
 const todoAddBtnSimple = document.getElementById('todo-add-btn-simple');
+const todoImportBtn = document.getElementById('todo-import-btn');
+const pomImportBackdrop = document.getElementById('pom-import-backdrop');
+const pomImportDialog = document.getElementById('pom-import-dialog');
+const pomImportInput = document.getElementById('pom-import-input');
+const pomImportCancelBtn = document.getElementById('pom-import-cancel');
+const pomImportConfirmBtn = document.getElementById('pom-import-confirm');
+const pomImportCloseBtn = document.getElementById('pom-import-close');
 // ── SVG 圆环初始化 ─────────────────────────────
 const POM_RING_R    = 50;
 const POM_RING_CIRC = parseFloat((2 * Math.PI * POM_RING_R).toFixed(3)); // ≈ 314.159
@@ -409,18 +417,6 @@ function pomKeyR() {
   if (pomPhaseIdx === 0) {
     // 1. 当前在专注中 -> 重置当前计时
     pomTimeLeft = POM_PHASES[0].duration;
-    // 重置当前未完成的中断数据
-    if (pomCurrentTodoId) {
-      const t = pomTodos.find(x => x.id === pomCurrentTodoId);
-      if (t) {
-        t.intInterrupts = 0;
-        t.extInterrupts = 0;
-        pomSaveTodos();
-      }
-    } else {
-      pomSessionIntInterrupts = 0;
-      pomSessionExtInterrupts = 0;
-    }
     pomNotify('🔄 计时已重置', false);
   } else {
     // 2. 当前在休息中(1或2) -> 跳过休息，进入下一个番茄状态
@@ -457,7 +453,9 @@ function revertOnePomodoro() {
 }
 // Esc：关闭面板
 function pomKeyEsc() {
-  if (pomTodoVisible) {
+  if (pomImportVisible) {
+    pomToggleImportDialog(false);
+  } else if (pomTodoVisible) {
     pomToggleTodoPanel(false);
   } else if (pomVisible) {
     pomHide();
@@ -1175,6 +1173,204 @@ function pomAddTodo() {
   todoEstValEl.textContent = '1';
   pomSaveTodos();
 }
+function pomToggleImportDialog(force) {
+  if (!pomImportDialog || !pomImportBackdrop) return;
+  const next = typeof force === 'boolean' ? force : !pomImportVisible;
+  if (next === pomImportVisible) return;
+  pomImportVisible = next;
+  if (pomImportVisible) {
+    pomImportBackdrop.classList.add('visible');
+    pomImportDialog.classList.add('visible');
+    setTimeout(() => {
+      if (pomImportInput) {
+        pomImportInput.focus();
+        pomImportInput.select();
+      }
+    }, 60);
+  } else {
+    pomImportBackdrop.classList.remove('visible');
+    pomImportDialog.classList.remove('visible');
+  }
+}
+function pomParseImport(text) {
+  const lines = String(text || '').split(/\r?\n/);
+  const items = [];
+  for (let i = 0; i < lines.length; i++) {
+    let raw = lines[i].trim();
+    if (!raw) continue;
+    if (raw.startsWith('#') || raw.startsWith('//')) continue;
+    if (/^HC-IMPORT/i.test(raw)) continue;
+    if (/^(date|日期)\s*[:：]/i.test(raw)) continue;
+    raw = raw.replace(/｜/g, '|');
+    const parts = raw.split('|').map(s => s.trim()).filter(Boolean);
+    if (parts.length < 2) {
+      return { error: `第 ${i + 1} 行缺少预估番茄数` };
+    }
+    if (parts.length > 2) {
+      return { error: `第 ${i + 1} 行格式应为：任务名 | 预估` };
+    }
+    const name = parts[0];
+    const est = parseInt(parts[1], 10);
+    if (!name) return { error: `第 ${i + 1} 行任务名为空` };
+    if (!Number.isFinite(est) || est < 1) return { error: `第 ${i + 1} 行预估番茄数无效` };
+    items.push({ text: name, est });
+  }
+  if (items.length === 0) return { error: '未识别到任何任务' };
+  return { items };
+}
+function pomApplyImport(text) {
+  const parsed = pomParseImport(text);
+  if (parsed.error) {
+    pomNotify(`⚠️ 导入失败：${parsed.error}`, false);
+    return;
+  }
+
+  const base = Date.now();
+  let seq = 0;
+  let addedTodos = 0;
+  let addedInventory = 0;
+
+  parsed.items.forEach(item => {
+    const todoId = base + (seq++);
+    const todoItem = {
+      id: todoId,
+      text: item.text,
+      est: item.est,
+      ext1: 0,
+      ext2: 0,
+      done: 0,
+      completed: false,
+      isNew: true
+    };
+
+    const normalized = item.text.trim().toLowerCase();
+    let invItem = pomInventory.find(i => (i.text || '').trim().toLowerCase() === normalized);
+    if (!invItem) {
+      const invId = base + 1000 + (seq++);
+      invItem = {
+        id: invId,
+        text: item.text,
+        est: item.est,
+        ext1: 0,
+        ext2: 0,
+        done: 0,
+        completed: false,
+        isNew: true
+      };
+      pomInventory.push(invItem);
+      addedInventory++;
+    }
+    todoItem.inventoryOriginalId = invItem.id;
+    pomTodos.push(todoItem);
+    addedTodos++;
+  });
+
+  if (addedTodos > 0) {
+    pomSaveTodos();
+    pomRenderInventory();
+    if (pomViewMode === 'today') pomRenderTodos();
+  }
+
+  pomNotify(`✅ 已导入 ${addedTodos} 项待办，新增 ${addedInventory} 项到活动清单`, false);
+  if (pomImportInput) pomImportInput.value = '';
+  pomToggleImportDialog(false);
+}
+function pomCopyToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text);
+  }
+  return new Promise((resolve, reject) => {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try {
+      const ok = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      if (ok) resolve();
+      else reject(new Error('复制失败'));
+    } catch (err) {
+      document.body.removeChild(textarea);
+      reject(err);
+    }
+  });
+}
+function pomBuildHistoryExport(date, tasks) {
+  let totalTasks = tasks.length;
+  let completedCount = 0;
+  let totalDone = 0;
+  let totalInt = 0;
+  let totalExt = 0;
+  let totalEst = 0;
+  let totalExt1 = 0;
+  let totalExt2 = 0;
+  let completedDone = 0;
+  let completedEst = 0;
+
+  tasks.forEach(t => {
+    const est = t.est || 1;
+    const ext1 = t.ext1 || 0;
+    const ext2 = t.ext2 || 0;
+    const done = t.done || 0;
+    totalEst += est;
+    totalExt1 += ext1;
+    totalExt2 += ext2;
+    totalDone += done;
+    totalInt += t.intInterrupts || 0;
+    totalExt += t.extInterrupts || 0;
+    if (t.completed) {
+      completedCount++;
+      completedDone += done;
+      completedEst += est + ext1 + ext2;
+    }
+  });
+
+  let dStr = date;
+  try {
+    const dObj = new Date(date);
+    const days = ['日', '一', '二', '三', '四', '五', '六'];
+    dStr = `${date} (周${days[dObj.getDay()]})`;
+  } catch(e) {}
+
+  const completionRate = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
+  const totalPlanned = totalEst + totalExt1 + totalExt2;
+  const diff = completedCount > 0 ? completedDone - completedEst : null;
+  const diffText = diff === null ? '-' : `${diff > 0 ? '+' : ''}${diff}`;
+
+  const lines = [];
+  lines.push('Huge-Clock 导出 v1');
+  lines.push(`日期: ${dStr}`);
+  lines.push(`任务数: ${totalTasks}`);
+  lines.push(`完成: ${completedCount}/${totalTasks} (${completionRate}%)`);
+  lines.push(`日总番茄: ${totalDone}`);
+  lines.push(`预估合计: ${totalEst} | 二次: ${totalExt1} | 三次: ${totalExt2} | 总计: ${totalPlanned}`);
+  lines.push(`内/外中断: ${totalInt}/${totalExt}`);
+  lines.push(`结项误差(已完成): ${diffText}`);
+  lines.push('');
+  lines.push('任务明细:');
+
+  tasks.forEach((t, idx) => {
+    const est = t.est || 1;
+    const ext1 = t.ext1 || 0;
+    const ext2 = t.ext2 || 0;
+    const done = t.done || 0;
+    const planned = est + ext1 + ext2;
+    const taskDiff = done - planned;
+    const taskDiffText = `${taskDiff > 0 ? '+' : ''}${taskDiff}`;
+    lines.push(`${idx + 1}. ${t.text}`);
+    lines.push(`   状态: ${t.completed ? '已完成' : '未完成'}`);
+    lines.push(`   预估: ${est} | 二次: ${ext1} | 三次: ${ext2} | 总计: ${planned}`);
+    lines.push(`   实际: ${done}`);
+    lines.push(`   误差: ${taskDiffText}`);
+    lines.push(`   内/外中断: ${(t.intInterrupts || 0)}/${(t.extInterrupts || 0)}`);
+  });
+  return lines.join('\n');
+}
 function pomRenderHistory() {
   todoHistListEl.innerHTML = '';
   const dates = Object.keys(pomHistory).sort((a,b) => b.localeCompare(a)); // 倒序
@@ -1245,8 +1441,11 @@ function pomRenderHistory() {
             <div class="hist-date">${dStr}</div>
             <div class="hist-completion">达成: ${completedCount}/${totalTasks} 项 (${completionRate}%)</div>
           </div>
-          <div class="hist-toggle-icon">
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          <div class="hist-summary-actions">
+            <button class="hist-export-btn" type="button" aria-label="导出 ${dStr}"><span>⤴︎</span><span>导出</span></button>
+            <div class="hist-toggle-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
           </div>
         </div>
         <div class="hist-stats">
@@ -1322,9 +1521,21 @@ function pomRenderHistory() {
       groupEl.classList.toggle('expanded');
     });
 
+    const exportBtn = groupEl.querySelector('.hist-export-btn');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const exportText = pomBuildHistoryExport(date, tasks);
+        pomCopyToClipboard(exportText)
+          .then(() => pomNotify('✅ 已复制到剪贴板', false))
+          .catch(() => pomNotify('⚠️ 复制失败，请检查浏览器权限', false));
+      });
+    }
+
     todoHistListEl.appendChild(groupEl);
   });
-}function pomToggleTodoPanel(forceStage) {
+}
+function pomToggleTodoPanel(forceStage) {
   if (typeof forceStage === 'boolean') {
     if (pomTodoVisible === forceStage) return; // 如果状态一致则直接返回
     pomTodoVisible = forceStage;
@@ -1369,6 +1580,7 @@ function pomSetViewMode(mode) {
   if(todoInvListEl) todoInvListEl.style.display = 'none';
   todoAddArea.style.display = 'flex';
   todoEstRow.style.display = 'flex';
+  if (todoImportBtn) todoImportBtn.style.display = mode === 'today' ? 'inline-flex' : 'none';
   if (mode === 'history') {
     todoAddArea.style.display = 'none';
     todoHistListEl.style.display = 'flex';
@@ -1405,6 +1617,29 @@ document.getElementById('todo-close-btn').addEventListener('click', e => {
   e.stopPropagation();
   pomToggleTodoPanel(false);
 });
+if (todoImportBtn) {
+  todoImportBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    pomToggleImportDialog(true);
+  });
+}
+if (pomImportDialog) {
+  pomImportDialog.addEventListener('click', (e) => {
+    if (e.target === pomImportDialog) pomToggleImportDialog(false);
+  });
+}
+if (pomImportCancelBtn) {
+  pomImportCancelBtn.addEventListener('click', () => pomToggleImportDialog(false));
+}
+if (pomImportCloseBtn) {
+  pomImportCloseBtn.addEventListener('click', () => pomToggleImportDialog(false));
+}
+if (pomImportConfirmBtn) {
+  pomImportConfirmBtn.addEventListener('click', () => {
+    const raw = pomImportInput ? pomImportInput.value : '';
+    pomApplyImport(raw);
+  });
+}
 if (todoTrigger) {
   const highlightPill = document.getElementById('todo-view-highlight');
   const todoMenuParent = document.getElementById('todo-view-menu');
@@ -1485,6 +1720,7 @@ document.addEventListener('click', () => {
 
 pomLoadTodos();
 pomRenderTodos();
+if (todoImportBtn) todoImportBtn.style.display = 'inline-flex';
 
 /* ══════════════════════════════════════════════
    触摸橡皮筋效果支持（Overscroll 弹性回弹）
