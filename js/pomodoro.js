@@ -14,13 +14,16 @@ const POM_PHASES = [
   { id: 'short-break', label: '短休息',  duration:  5 * 60, color: '#43d08a' },
   { id: 'long-break',  label: '长休息',  duration: 15 * 60, color: '#4db6ff' },
 ];
-const POM_MAX_ROUNDS = 4; // 几轮专注后进入长休息
+const POM_MAX_ROUNDS = 4; // 连续专注数达到上限后进入长休息
+const POM_CONTINUITY_GAP = 45 * 60 * 1000; // 超过该间隔视为中断连续专注（毫秒）
 // ── 状态 ──────────────────────────────────────
 let pomVisible  = false;
 let pomRunning  = false;
 let pomPhaseIdx = 0;
 let pomTimeLeft = POM_PHASES[0].duration;
-let pomRounds   = 0;       // 当前大轮内已完成的专注次数
+let pomFocusStreak = 0;       // 连续专注次数（跨任务，受间隔限制）
+let pomLastFocusEndAt = null; // 最近一次专注结束时间
+let pomFocusStartAt = null;   // 当前专注开始时间
 let pomInterval = null;
 let pomTargetSessions = 4;   // 预计需要的番茄数（默认 4）
 let pomTotalFocusDone = 0;   // 当前任务已完成的专注次数
@@ -265,6 +268,26 @@ function pomNotify(msg, playSoundAndSys = false) {
     pomSystemNotify(msg);
   }
 }
+function pomGetCurrentTodo() {
+  if (!pomCurrentTodoId) return null;
+  return pomTodos.find(x => x.id === pomCurrentTodoId) || null;
+}
+function pomIsCurrentTodoCompleted() {
+  const t = pomGetCurrentTodo();
+  return !!(t && t.completed);
+}
+function pomStopForCompletedTodo(message) {
+  pomTotalFocusDone = 0;
+  pomSessionIntInterrupts = 0;
+  pomSessionExtInterrupts = 0;
+  pomCurrentTodoId = null;
+  pomFocusStartAt = null;
+  pomPauseTimer();           // 同时解锁输入框
+  pomTaskInputEl.value = '';
+  pomRender();
+  pomRenderTodos();
+  pomNotify(message, true);
+}
 // ── 计时器逻辑 ────────────────────────────────
 function pomTick() {
   if (pomTimeLeft > 0) {
@@ -291,6 +314,12 @@ function pomStartTimer() {
     console.warn("请求通知权限时发生错误", e);
   }
 
+  // 若即将开启专注，但当前任务已被标记为完成，则不再继续计时
+  if (pomPhaseIdx === 0 && pomIsCurrentTodoCompleted()) {
+    pomStopForCompletedTodo('✅ 任务已完成，开始下个任务吧！');
+    return;
+  }
+
   // 开始计时时，如果是自己手动填写的未关联任务（或半途修改导致已解绑），自动在今日待办中新建一个并关联
   const taskName = pomTaskInputEl.value.trim();
   if (taskName && !pomCurrentTodoId) {
@@ -301,6 +330,10 @@ function pomStartTimer() {
       est: pomTargetSessions || 1,
       done: pomTotalFocusDone || 0,
       completed: false,
+      completedAt: null,
+      firstFocusAt: null,
+      lastFocusAt: null,
+      skippedBreaks: 0,
       isNew: true,
       intInterrupts: pomSessionIntInterrupts || 0,
       extInterrupts: pomSessionExtInterrupts || 0
@@ -310,6 +343,19 @@ function pomStartTimer() {
     pomSaveTodos();
     if(pomViewMode === 'today') {
       pomRenderTodos();
+    }
+  }
+
+  if (pomPhaseIdx === 0) {
+    const now = Date.now();
+    if (!pomFocusStartAt || pomTimeLeft === POM_PHASES[0].duration) {
+      pomFocusStartAt = now;
+    }
+    const t = pomGetCurrentTodo();
+    if (t) {
+      if (!t.firstFocusAt) t.firstFocusAt = pomFocusStartAt;
+      pomSaveTodos();
+      if (pomViewMode === 'today') pomRenderTodos();
     }
   }
 
@@ -334,7 +380,14 @@ function pomOnPhaseEnd() {
   if (pomPhaseIdx === 0) {
     // 专注阶段结束
     pomTotalFocusDone++;
-    pomRounds++;
+    const now = Date.now();
+    const focusStartAt = pomFocusStartAt || now;
+    if (pomLastFocusEndAt && (focusStartAt - pomLastFocusEndAt) > POM_CONTINUITY_GAP) {
+      pomFocusStreak = 0;
+    }
+    pomFocusStreak++;
+    pomLastFocusEndAt = now;
+    pomFocusStartAt = null;
     const taskName = pomTaskInputEl.value.trim();
     const taskDone = pomTotalFocusDone >= pomTargetSessions;
     // 如果有绑定的待办事项，更新其进度
@@ -342,13 +395,15 @@ function pomOnPhaseEnd() {
       const t = pomTodos.find(x => x.id === pomCurrentTodoId);
       if (t) {
         t.done++;
+        t.lastFocusAt = now;
+        if (!t.firstFocusAt) t.firstFocusAt = focusStartAt;
         pomSaveTodos();
         pomRenderTodos();
       }
     }
     // 确定下一个休息阶段
-    if (pomRounds >= POM_MAX_ROUNDS) {
-      pomRounds   = 0;
+    if (pomFocusStreak >= POM_MAX_ROUNDS) {
+      pomFocusStreak = 0;
       pomPhaseIdx = 2;
       pomTimeLeft = POM_PHASES[2].duration;
     } else {
@@ -368,10 +423,13 @@ function pomOnPhaseEnd() {
     // 休息结束
     pomPhaseIdx = 0;
     pomTimeLeft = POM_PHASES[0].duration;
+    if (pomIsCurrentTodoCompleted()) {
+      pomStopForCompletedTodo('✅ 任务已完成，开始下个任务吧！');
+      return;
+    }
     if (pomTotalFocusDone >= pomTargetSessions) {
       // 任务已达标：重置进度，暂停等待用户开始下一个任务
       pomTotalFocusDone = 0;
-      pomRounds         = 0;
       pomCurrentTodoId  = null;
       pomSessionIntInterrupts = 0;
       pomSessionExtInterrupts = 0;
@@ -416,10 +474,19 @@ function pomKeyR() {
   
   if (pomPhaseIdx === 0) {
     // 1. 当前在专注中 -> 重置当前计时
+    pomFocusStartAt = null;
     pomTimeLeft = POM_PHASES[0].duration;
     pomNotify('🔄 计时已重置', false);
   } else {
     // 2. 当前在休息中(1或2) -> 跳过休息，进入下一个番茄状态
+    if (pomCurrentTodoId) {
+      const t = pomGetCurrentTodo();
+      if (t) {
+        t.skippedBreaks = (t.skippedBreaks || 0) + 1;
+        pomSaveTodos();
+        if (pomViewMode === 'today') pomRenderTodos();
+      }
+    }
     pomPhaseIdx = 0;
     pomTimeLeft = POM_PHASES[0].duration;
     pomNotify('⏭️ 已跳过休息，进入专注', false);
@@ -437,7 +504,9 @@ function revertOnePomodoro() {
   
   // 核心回退：已经完成的专注次数减1，对应任务的打卡减1
   if (pomTotalFocusDone > 0) pomTotalFocusDone--;
-  if (pomRounds > 0) pomRounds--;
+  if (pomFocusStreak > 0) pomFocusStreak--;
+  pomLastFocusEndAt = null;
+  pomFocusStartAt = null;
   
   // 若有关联的待办事项，撤销其一次完成量
   if (pomCurrentTodoId) {
@@ -695,6 +764,7 @@ function pomSaveTodos() {
     history: pomHistory
   };
   localStorage.setItem('pomodoro_data', JSON.stringify(data));
+  if (typeof pomRenderHistory === 'function' && pomViewMode === 'history') pomRenderHistory();
 }
 function pomLoadTodos() {
   try {
@@ -706,6 +776,17 @@ function pomLoadTodos() {
     const data = JSON.parse(raw);
     pomHistory = data.history || {};
     pomInventory = data.inventory || [];
+    const normalizeSkippedBreaks = (arr) => {
+      if (!Array.isArray(arr)) return;
+      arr.forEach(item => {
+        if (!item) return;
+        if (item.skippedBreaks == null && item.skippedPoms != null) {
+          item.skippedBreaks = item.skippedPoms;
+        }
+      });
+    };
+    normalizeSkippedBreaks(pomInventory);
+    Object.keys(pomHistory).forEach(k => normalizeSkippedBreaks(pomHistory[k]));
     
     // 如果日期变了，将上一天的任务归档，清空今日任务
     if (data.today && data.today !== currentDay) {
@@ -718,6 +799,7 @@ function pomLoadTodos() {
       pomTodos = data.todos || [];
       pomActiveDate = data.today || currentDay; // 恢复保存时的活跃日期
     }
+    normalizeSkippedBreaks(pomTodos);
   } catch(e) {
     console.warn("读取番茄钟数据失败", e);
   }
@@ -966,11 +1048,15 @@ function pomRenderTodos() {
     const chk = el.querySelector('.todo-chk');
     chk.addEventListener('change', (e) => {
       item.completed = e.target.checked;
+      if (item.completed) item.completedAt = item.completedAt || Date.now();
+      else item.completedAt = null;
       // 如果有来源于活动清单的记录，联动同步其状态并保存
       if (item.inventoryOriginalId) {
         const invItem = pomInventory.find(i => i.id === item.inventoryOriginalId);
         if (invItem) {
           invItem.completed = item.completed;
+          if (invItem.completed) invItem.completedAt = invItem.completedAt || item.completedAt || Date.now();
+          else invItem.completedAt = null;
           pomSaveTodos();
         }
       }
@@ -1159,6 +1245,10 @@ function pomAddTodo() {
     est: pomTodoEstValue,
     done: 0,
     completed: false,
+    completedAt: null,
+    firstFocusAt: null,
+    lastFocusAt: null,
+    skippedBreaks: 0,
     isNew: true
   };
   if (pomViewMode === 'inventory') {
@@ -1240,6 +1330,10 @@ function pomApplyImport(text) {
       ext2: 0,
       done: 0,
       completed: false,
+      completedAt: null,
+      firstFocusAt: null,
+      lastFocusAt: null,
+      skippedBreaks: 0,
       isNew: true
     };
 
@@ -1255,6 +1349,10 @@ function pomApplyImport(text) {
         ext2: 0,
         done: 0,
         completed: false,
+        completedAt: null,
+        firstFocusAt: null,
+        lastFocusAt: null,
+        skippedBreaks: 0,
         isNew: true
       };
       pomInventory.push(invItem);
@@ -1300,6 +1398,31 @@ function pomCopyToClipboard(text) {
     }
   });
 }
+function pomFormatTime(ts) {
+  if (!ts) return '-';
+  const d = new Date(ts);
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function pomFormatTimeRange(start, end) {
+  if (!start || !end) return '-';
+  return `${pomFormatTime(start)}-${pomFormatTime(end)}`;
+}
+function pomFormatDuration(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) return '-';
+  const totalMinutes = Math.round(ms / 60000);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h > 0) return `${h}小时${m}分`;
+  return `${m}分`;
+}
+function pomGetHistoryViewData() {
+  const snapshot = { ...pomHistory };
+  const today = pomGetDateStr();
+  if (pomTodos && pomTodos.length > 0) {
+    snapshot[today] = pomTodos.map(t => ({ ...t }));
+  }
+  return snapshot;
+}
 function pomBuildHistoryExport(date, tasks) {
   let totalTasks = tasks.length;
   let completedCount = 0;
@@ -1309,6 +1432,9 @@ function pomBuildHistoryExport(date, tasks) {
   let totalEst = 0;
   let totalExt1 = 0;
   let totalExt2 = 0;
+  let totalSkipped = 0;
+  let dayStartAt = null;
+  let dayEndAt = null;
   let completedDone = 0;
   let completedEst = 0;
 
@@ -1323,6 +1449,11 @@ function pomBuildHistoryExport(date, tasks) {
     totalDone += done;
     totalInt += t.intInterrupts || 0;
     totalExt += t.extInterrupts || 0;
+    totalSkipped += (t.skippedBreaks || t.skippedPoms || 0);
+    const tStart = t.firstFocusAt || null;
+    const tEnd = t.completedAt || t.lastFocusAt || null;
+    if (tStart && (!dayStartAt || tStart < dayStartAt)) dayStartAt = tStart;
+    if (tEnd && (!dayEndAt || tEnd > dayEndAt)) dayEndAt = tEnd;
     if (t.completed) {
       completedCount++;
       completedDone += done;
@@ -1341,6 +1472,8 @@ function pomBuildHistoryExport(date, tasks) {
   const totalPlanned = totalEst + totalExt1 + totalExt2;
   const diff = completedCount > 0 ? completedDone - completedEst : null;
   const diffText = diff === null ? '-' : `${diff > 0 ? '+' : ''}${diff}`;
+  const dayRangeText = pomFormatTimeRange(dayStartAt, dayEndAt);
+  const daySpanText = dayStartAt && dayEndAt ? pomFormatDuration(dayEndAt - dayStartAt) : '-';
 
   const lines = [];
   lines.push('Huge-Clock 导出 v1');
@@ -1350,6 +1483,8 @@ function pomBuildHistoryExport(date, tasks) {
   lines.push(`日总番茄: ${totalDone}`);
   lines.push(`预估合计: ${totalEst} | 二次: ${totalExt1} | 三次: ${totalExt2} | 总计: ${totalPlanned}`);
   lines.push(`内/外中断: ${totalInt}/${totalExt}`);
+  lines.push(`跳过休息: ${totalSkipped}`);
+  lines.push(`工作区间: ${dayRangeText} | 跨度: ${daySpanText}`);
   lines.push(`结项误差(已完成): ${diffText}`);
   lines.push('');
   lines.push('任务明细:');
@@ -1362,24 +1497,32 @@ function pomBuildHistoryExport(date, tasks) {
     const planned = est + ext1 + ext2;
     const taskDiff = done - planned;
     const taskDiffText = `${taskDiff > 0 ? '+' : ''}${taskDiff}`;
+    const taskStart = t.firstFocusAt || null;
+    const taskEnd = t.completedAt || t.lastFocusAt || null;
+    const taskRange = pomFormatTimeRange(taskStart, taskEnd);
+    const taskSpan = taskStart && taskEnd ? pomFormatDuration(taskEnd - taskStart) : '-';
     lines.push(`${idx + 1}. ${t.text}`);
     lines.push(`   状态: ${t.completed ? '已完成' : '未完成'}`);
     lines.push(`   预估: ${est} | 二次: ${ext1} | 三次: ${ext2} | 总计: ${planned}`);
     lines.push(`   实际: ${done}`);
     lines.push(`   误差: ${taskDiffText}`);
     lines.push(`   内/外中断: ${(t.intInterrupts || 0)}/${(t.extInterrupts || 0)}`);
+    lines.push(`   跳过休息: ${(t.skippedBreaks || t.skippedPoms || 0)}`);
+    lines.push(`   时间区间: ${taskRange} | 跨度: ${taskSpan}`);
+    lines.push(`   完成时刻: ${t.completedAt ? pomFormatTime(t.completedAt) : '-'}`);
   });
   return lines.join('\n');
 }
 function pomRenderHistory() {
   todoHistListEl.innerHTML = '';
-  const dates = Object.keys(pomHistory).sort((a,b) => b.localeCompare(a)); // 倒序
+  const historyView = pomGetHistoryViewData();
+  const dates = Object.keys(historyView).sort((a,b) => b.localeCompare(a)); // 倒序
   if (dates.length === 0) {
     todoHistListEl.innerHTML = `<div class="hist-empty">暂无历史记录</div>`;
     return;
   }
   dates.forEach((date, index) => {
-    const tasks = pomHistory[date];
+    const tasks = historyView[date];
     if (!tasks || tasks.length === 0) return;
 
     let totalTasks = tasks.length;
