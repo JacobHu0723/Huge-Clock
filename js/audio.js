@@ -106,7 +106,7 @@ function handleKeyDown(e) {
    ══════════════════════════════════════════════ */
 function handleWheel(e) {
   // 如果滚轮事件发生在番茄钟相关面板上，则不触发音量调节
-  if (e.target.closest('#pom-panel, #pom-todo-panel, #pom-fab, #pom-fab-zone')) return;
+  if (e.target.closest('#pom-panel, #pom-todo-panel, #pom-fab, #pom-fab-zone, #pom-import-dialog, #pom-import-backdrop')) return;
   adjustVolume(e.deltaY < 0 ? 0.05 : -0.05);
 }
 
@@ -136,7 +136,7 @@ document.addEventListener('touchstart', e => {
     document.body.classList.add('is-touch');
   }
   // 如果触摸发生在番茄钟相关面板上（包括待办列表），忽略全局手势
-  touchOnUI = !!e.target.closest('#pom-panel, #pom-todo-panel, #pom-fab, #pom-fab-zone');
+  touchOnUI = !!e.target.closest('#pom-panel, #pom-todo-panel, #pom-fab, #pom-fab-zone, #pom-import-dialog, #pom-import-backdrop');
   if (touchOnUI) { touchDir = null; return; }
   touchStartX = e.changedTouches[0].clientX;
   touchStartY = e.changedTouches[0].clientY;

@@ -334,6 +334,8 @@ function pomStartTimer() {
       firstFocusAt: null,
       lastFocusAt: null,
       skippedBreaks: 0,
+      resetCount: 0,
+      revertCount: 0,
       isNew: true,
       intInterrupts: pomSessionIntInterrupts || 0,
       extInterrupts: pomSessionExtInterrupts || 0
@@ -471,11 +473,17 @@ function pomKeyP() {
 function pomKeyR() {
   if (!pomVisible) return;
   pomPauseTimer();
+  let autoStartNextFocus = false;
   
   if (pomPhaseIdx === 0) {
     // 1. 当前在专注中 -> 重置当前计时
     pomFocusStartAt = null;
     pomTimeLeft = POM_PHASES[0].duration;
+    const t = pomGetCurrentTodo();
+    if (t) {
+      t.resetCount = (t.resetCount || 0) + 1;
+      pomSaveTodos();
+    }
     pomNotify('🔄 计时已重置', false);
   } else {
     // 2. 当前在休息中(1或2) -> 跳过休息，进入下一个番茄状态
@@ -490,10 +498,14 @@ function pomKeyR() {
     pomPhaseIdx = 0;
     pomTimeLeft = POM_PHASES[0].duration;
     pomNotify('⏭️ 已跳过休息，进入专注', false);
+    autoStartNextFocus = true;
   }
   
   if(pomViewMode === 'today') pomRenderTodos();
   pomRender();
+  if (autoStartNextFocus) {
+    pomStartTimer();
+  }
 }
 
 // 长按倒退上一番茄钟的专项逻辑
@@ -514,6 +526,7 @@ function revertOnePomodoro() {
     if (t && t.done > 0) {
       t.done--;
       t.completed = false; // 撤销完成状态
+      t.revertCount = (t.revertCount || 0) + 1;
       pomSaveTodos();
     }
   }
@@ -778,13 +791,19 @@ function pomLoadTodos() {
     pomInventory = data.inventory || [];
     const normalizeSkippedBreaks = (arr) => {
       if (!Array.isArray(arr)) return;
-      arr.forEach(item => {
-        if (!item) return;
-        if (item.skippedBreaks == null && item.skippedPoms != null) {
-          item.skippedBreaks = item.skippedPoms;
-        }
-      });
-    };
+    arr.forEach(item => {
+      if (!item) return;
+      if (item.skippedBreaks == null && item.skippedPoms != null) {
+        item.skippedBreaks = item.skippedPoms;
+      }
+      if (item.resetCount == null) {
+        item.resetCount = 0;
+      }
+      if (item.revertCount == null) {
+        item.revertCount = 0;
+      }
+    });
+  };
     normalizeSkippedBreaks(pomInventory);
     Object.keys(pomHistory).forEach(k => normalizeSkippedBreaks(pomHistory[k]));
     
@@ -1209,6 +1228,8 @@ function pomRenderInventory() {
         todoItem.est = Math.max(1, parseInt(inputs.est.value) || 1);
         todoItem.ext1 = Math.max(0, parseInt(inputs.ext1.value) || 0);
         todoItem.ext2 = Math.max(0, parseInt(inputs.ext2.value) || 0);
+        todoItem.resetCount = 0;
+        todoItem.revertCount = 0;
         todoItem.inventoryOriginalId = item.id;
         item.todayInstances = item.todayInstances || [];
         item.todayInstances.push(todoItem.id);
@@ -1249,6 +1270,8 @@ function pomAddTodo() {
     firstFocusAt: null,
     lastFocusAt: null,
     skippedBreaks: 0,
+    resetCount: 0,
+    revertCount: 0,
     isNew: true
   };
   if (pomViewMode === 'inventory') {
@@ -1334,6 +1357,8 @@ function pomApplyImport(text) {
       firstFocusAt: null,
       lastFocusAt: null,
       skippedBreaks: 0,
+      resetCount: 0,
+      revertCount: 0,
       isNew: true
     };
 
@@ -1353,6 +1378,8 @@ function pomApplyImport(text) {
         firstFocusAt: null,
         lastFocusAt: null,
         skippedBreaks: 0,
+        resetCount: 0,
+        revertCount: 0,
         isNew: true
       };
       pomInventory.push(invItem);
@@ -1433,6 +1460,8 @@ function pomBuildHistoryExport(date, tasks) {
   let totalExt1 = 0;
   let totalExt2 = 0;
   let totalSkipped = 0;
+  let totalResets = 0;
+  let totalReverts = 0;
   let dayStartAt = null;
   let dayEndAt = null;
   let completedDone = 0;
@@ -1450,6 +1479,8 @@ function pomBuildHistoryExport(date, tasks) {
     totalInt += t.intInterrupts || 0;
     totalExt += t.extInterrupts || 0;
     totalSkipped += (t.skippedBreaks || t.skippedPoms || 0);
+    totalResets += (t.resetCount || 0);
+    totalReverts += (t.revertCount || 0);
     const tStart = t.firstFocusAt || null;
     const tEnd = t.completedAt || t.lastFocusAt || null;
     if (tStart && (!dayStartAt || tStart < dayStartAt)) dayStartAt = tStart;
@@ -1484,6 +1515,8 @@ function pomBuildHistoryExport(date, tasks) {
   lines.push(`预估合计: ${totalEst} | 二次: ${totalExt1} | 三次: ${totalExt2} | 总计: ${totalPlanned}`);
   lines.push(`内/外中断: ${totalInt}/${totalExt}`);
   lines.push(`跳过休息: ${totalSkipped}`);
+  lines.push(`重置番茄钟: ${totalResets}`);
+  lines.push(`撤销番茄钟: ${totalReverts}`);
   lines.push(`工作区间: ${dayRangeText} | 跨度: ${daySpanText}`);
   lines.push(`结项误差(已完成): ${diffText}`);
   lines.push('');
@@ -1508,6 +1541,8 @@ function pomBuildHistoryExport(date, tasks) {
     lines.push(`   误差: ${taskDiffText}`);
     lines.push(`   内/外中断: ${(t.intInterrupts || 0)}/${(t.extInterrupts || 0)}`);
     lines.push(`   跳过休息: ${(t.skippedBreaks || t.skippedPoms || 0)}`);
+    lines.push(`   重置番茄钟: ${(t.resetCount || 0)}`);
+    lines.push(`   撤销番茄钟: ${(t.revertCount || 0)}`);
     lines.push(`   时间区间: ${taskRange} | 跨度: ${taskSpan}`);
     lines.push(`   完成时刻: ${t.completedAt ? pomFormatTime(t.completedAt) : '-'}`);
   });

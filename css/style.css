@@ -1134,7 +1134,7 @@ body.is-touch .todo-icon-btn[data-key]::after {
   padding: 10px 12px;
   box-sizing: border-box;
   min-height: 0;
-  max-height: 32vh;
+  max-height: min(32vh, 240px);
   overflow-y: auto;
 }
 
