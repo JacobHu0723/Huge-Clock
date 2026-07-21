@@ -788,9 +788,11 @@ window._pomNextDay = function() {
   }
   pomTodos = [];
   pomCurrentTodoId = null;
+  pomInventory = pomInventory.filter(i => !i.completed);
   pomSaveTodos();
 
   if (typeof pomRenderTodos === 'function' && pomViewMode === 'today') pomRenderTodos();
+  if (typeof pomRenderInventory === 'function' && pomViewMode === 'inventory') pomRenderInventory();
   if (typeof pomRenderHistory === 'function' && pomViewMode === 'history') pomRenderHistory();
 
   console.log(`%c[Debug] %c已模拟进入下一天，当前待办已归档至 ${currentDay}`, 'color: #3498db; font-weight: bold;', 'color: inherit;');
@@ -867,6 +869,8 @@ function pomLoadTodos() {
       }
       pomTodos = [];
       pomCurrentTodoId = null;
+      // 跨天时清理活动清单中已完成的任务，保留未完成的
+      pomInventory = pomInventory.filter(i => !i.completed);
     } else {
       pomTodos = data.todos || [];
       pomActiveDate = data.today || currentDay; // 恢复保存时的活跃日期
@@ -1422,7 +1426,8 @@ function pomApplyImport(text) {
     };
 
     const normalized = item.text.trim().toLowerCase();
-    let invItem = pomInventory.find(i => (i.text || '').trim().toLowerCase() === normalized);
+    // 同名但已完成的活动清单项不复用，视为不存在并新建条目
+    let invItem = pomInventory.find(i => !i.completed && (i.text || '').trim().toLowerCase() === normalized);
     if (!invItem) {
       const invId = base + 1000 + (seq++);
       invItem = {
