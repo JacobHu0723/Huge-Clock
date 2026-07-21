@@ -24,6 +24,7 @@ let pomTimeLeft = POM_PHASES[0].duration;
 let pomFocusStreak = 0;       // 连续专注次数（跨任务，受间隔限制）
 let pomLastFocusEndAt = null; // 最近一次专注结束时间
 let pomFocusStartAt = null;   // 当前专注开始时间
+let pomBreakStartAt = null;   // 当前休息开始时间
 let pomInterval = null;
 let pomTargetSessions = 4;   // 预计需要的番茄数（默认 4）
 let pomTotalFocusDone = 0;   // 当前任务已完成的专注次数
@@ -333,6 +334,8 @@ function pomStartTimer() {
       completedAt: null,
       firstFocusAt: null,
       lastFocusAt: null,
+      focusSessions: [],
+      breakSessions: [],
       skippedBreaks: 0,
       resetCount: 0,
       revertCount: 0,
@@ -358,6 +361,11 @@ function pomStartTimer() {
       if (!t.firstFocusAt) t.firstFocusAt = pomFocusStartAt;
       pomSaveTodos();
       if (pomViewMode === 'today') pomRenderTodos();
+    }
+  } else {
+    // 休息阶段开始，记录休息开始时间
+    if (!pomBreakStartAt) {
+      pomBreakStartAt = Date.now();
     }
   }
 
@@ -399,6 +407,10 @@ function pomOnPhaseEnd() {
         t.done++;
         t.lastFocusAt = now;
         if (!t.firstFocusAt) t.firstFocusAt = focusStartAt;
+        if (!Array.isArray(t.focusSessions)) t.focusSessions = [];
+        if (focusStartAt && now >= focusStartAt) {
+          t.focusSessions.push({ startAt: focusStartAt, endAt: now });
+        }
         pomSaveTodos();
         pomRenderTodos();
       }
@@ -423,6 +435,17 @@ function pomOnPhaseEnd() {
     pomStartTimer();
   } else {
     // 休息结束
+    const breakEndAt = Date.now();
+    // 记录休息时间段到前一个专注所属的任务
+    if (pomCurrentTodoId && pomBreakStartAt && breakEndAt >= pomBreakStartAt) {
+      const t = pomTodos.find(x => x.id === pomCurrentTodoId);
+      if (t) {
+        if (!Array.isArray(t.breakSessions)) t.breakSessions = [];
+        t.breakSessions.push({ startAt: pomBreakStartAt, endAt: breakEndAt });
+        pomSaveTodos();
+      }
+    }
+    pomBreakStartAt = null;
     pomPhaseIdx = 0;
     pomTimeLeft = POM_PHASES[0].duration;
     if (pomIsCurrentTodoCompleted()) {
@@ -526,7 +549,18 @@ function revertOnePomodoro() {
     if (t && t.done > 0) {
       t.done--;
       t.completed = false; // 撤销完成状态
+      t.completedAt = null;
       t.revertCount = (t.revertCount || 0) + 1;
+      if (Array.isArray(t.focusSessions) && t.focusSessions.length > 0) {
+        t.focusSessions.pop();
+      }
+      if (Array.isArray(t.focusSessions) && t.focusSessions.length > 0) {
+        t.firstFocusAt = t.focusSessions[0].startAt || null;
+        t.lastFocusAt = t.focusSessions[t.focusSessions.length - 1].endAt || null;
+      } else {
+        t.firstFocusAt = null;
+        t.lastFocusAt = null;
+      }
       pomSaveTodos();
     }
   }
@@ -795,6 +829,25 @@ function pomLoadTodos() {
       if (!item) return;
       if (item.skippedBreaks == null && item.skippedPoms != null) {
         item.skippedBreaks = item.skippedPoms;
+      }
+      if (!Array.isArray(item.focusSessions)) {
+        item.focusSessions = [];
+      } else {
+        item.focusSessions = item.focusSessions
+          .filter(s => s && Number.isFinite(s.startAt) && Number.isFinite(s.endAt) && s.endAt >= s.startAt)
+          .map(s => ({ startAt: s.startAt, endAt: s.endAt }))
+          .sort((a, b) => a.startAt - b.startAt);
+      }
+      if (item.focusSessions.length === 0 && item.firstFocusAt && item.lastFocusAt && item.lastFocusAt >= item.firstFocusAt) {
+        item.focusSessions = [{ startAt: item.firstFocusAt, endAt: item.lastFocusAt }];
+      }
+      if (!Array.isArray(item.breakSessions)) {
+        item.breakSessions = [];
+      } else {
+        item.breakSessions = item.breakSessions
+          .filter(s => s && Number.isFinite(s.startAt) && Number.isFinite(s.endAt) && s.endAt >= s.startAt)
+          .map(s => ({ startAt: s.startAt, endAt: s.endAt }))
+          .sort((a, b) => a.startAt - b.startAt);
       }
       if (item.resetCount == null) {
         item.resetCount = 0;
@@ -1228,6 +1281,8 @@ function pomRenderInventory() {
         todoItem.est = Math.max(1, parseInt(inputs.est.value) || 1);
         todoItem.ext1 = Math.max(0, parseInt(inputs.ext1.value) || 0);
         todoItem.ext2 = Math.max(0, parseInt(inputs.ext2.value) || 0);
+        todoItem.focusSessions = [];
+        todoItem.breakSessions = [];
         todoItem.resetCount = 0;
         todoItem.revertCount = 0;
         todoItem.inventoryOriginalId = item.id;
@@ -1269,6 +1324,8 @@ function pomAddTodo() {
     completedAt: null,
     firstFocusAt: null,
     lastFocusAt: null,
+    focusSessions: [],
+    breakSessions: [],
     skippedBreaks: 0,
     resetCount: 0,
     revertCount: 0,
@@ -1356,6 +1413,8 @@ function pomApplyImport(text) {
       completedAt: null,
       firstFocusAt: null,
       lastFocusAt: null,
+      focusSessions: [],
+      breakSessions: [],
       skippedBreaks: 0,
       resetCount: 0,
       revertCount: 0,
@@ -1377,6 +1436,8 @@ function pomApplyImport(text) {
         completedAt: null,
         firstFocusAt: null,
         lastFocusAt: null,
+        focusSessions: [],
+        breakSessions: [],
         skippedBreaks: 0,
         resetCount: 0,
         revertCount: 0,
@@ -1434,6 +1495,89 @@ function pomFormatTimeRange(start, end) {
   if (!start || !end) return '-';
   return `${pomFormatTime(start)}-${pomFormatTime(end)}`;
 }
+function pomMergeIntervals(intervals, maxGap = POM_CONTINUITY_GAP) {
+  if (!Array.isArray(intervals) || intervals.length === 0) return [];
+  const normalized = intervals
+    .filter(i => i && Number.isFinite(i.startAt) && Number.isFinite(i.endAt) && i.endAt >= i.startAt)
+    .sort((a, b) => a.startAt - b.startAt);
+  if (normalized.length === 0) return [];
+  const merged = [{ startAt: normalized[0].startAt, endAt: normalized[0].endAt }];
+  for (let i = 1; i < normalized.length; i++) {
+    const curr = normalized[i];
+    const last = merged[merged.length - 1];
+    if ((curr.startAt - last.endAt) <= maxGap) {
+      if (curr.endAt > last.endAt) last.endAt = curr.endAt;
+    } else {
+      merged.push({ startAt: curr.startAt, endAt: curr.endAt });
+    }
+  }
+  return merged;
+}
+function pomGetTaskIntervals(task) {
+  if (!task) return [];
+  const sessions = Array.isArray(task.focusSessions) ? task.focusSessions : [];
+  const base = sessions.length > 0
+    ? sessions
+    : (task.firstFocusAt && task.lastFocusAt && task.lastFocusAt >= task.firstFocusAt
+      ? [{ startAt: task.firstFocusAt, endAt: task.lastFocusAt }]
+      : []);
+  if (base.length === 0) return [];
+
+  const sorted = base
+    .filter(i => i && Number.isFinite(i.startAt) && Number.isFinite(i.endAt) && i.endAt >= i.startAt)
+    .slice()
+    .sort((a, b) => a.startAt - b.startAt);
+  if (sorted.length === 0) return [];
+
+  const breaks = Array.isArray(task.breakSessions) ? task.breakSessions : [];
+  const merged = [{ startAt: sorted[0].startAt, endAt: sorted[0].endAt }];
+
+  for (let i = 1; i < sorted.length; i++) {
+    const curr = sorted[i];
+    const last = merged[merged.length - 1];
+    const gap = curr.startAt - last.endAt;
+
+    if (gap > POM_CONTINUITY_GAP) {
+      // 间隔超过阈值，不合并
+      merged.push({ startAt: curr.startAt, endAt: curr.endAt });
+      continue;
+    }
+
+    // 检查间隔期间是否有完整休息记录
+    const hasBreakBetween = breaks.some(b =>
+      b.startAt >= last.endAt && b.endAt <= curr.startAt
+    );
+
+    if (hasBreakBetween) {
+      // 间隔期间是正常休息，合并
+      if (curr.endAt > last.endAt) last.endAt = curr.endAt;
+    } else {
+      // 间隔期间无休息记录（其他任务/跳过休息/退出网页/空闲），不合并
+      merged.push({ startAt: curr.startAt, endAt: curr.endAt });
+    }
+  }
+
+  // completedAt 延伸逻辑保持不变
+  if (merged.length > 0 && task.completedAt && task.completedAt >= merged[merged.length - 1].endAt) {
+    if ((task.completedAt - merged[merged.length - 1].endAt) <= POM_CONTINUITY_GAP) {
+      merged[merged.length - 1].endAt = task.completedAt;
+    }
+  }
+  return merged;
+}
+function pomFormatIntervalList(intervals) {
+  if (!Array.isArray(intervals) || intervals.length === 0) return '-';
+  return intervals.map(i => pomFormatTimeRange(i.startAt, i.endAt)).join('; ');
+}
+function pomSumIntervalDuration(intervals) {
+  if (!Array.isArray(intervals) || intervals.length === 0) return 0;
+  let total = 0;
+  intervals.forEach(i => {
+    if (!i || !Number.isFinite(i.startAt) || !Number.isFinite(i.endAt) || i.endAt < i.startAt) return;
+    total += (i.endAt - i.startAt);
+  });
+  return total;
+}
 function pomFormatDuration(ms) {
   if (!Number.isFinite(ms) || ms <= 0) return '-';
   const totalMinutes = Math.round(ms / 60000);
@@ -1462,8 +1606,7 @@ function pomBuildHistoryExport(date, tasks) {
   let totalSkipped = 0;
   let totalResets = 0;
   let totalReverts = 0;
-  let dayStartAt = null;
-  let dayEndAt = null;
+  const dayIntervalsRaw = [];
   let completedDone = 0;
   let completedEst = 0;
 
@@ -1481,10 +1624,8 @@ function pomBuildHistoryExport(date, tasks) {
     totalSkipped += (t.skippedBreaks || t.skippedPoms || 0);
     totalResets += (t.resetCount || 0);
     totalReverts += (t.revertCount || 0);
-    const tStart = t.firstFocusAt || null;
-    const tEnd = t.completedAt || t.lastFocusAt || null;
-    if (tStart && (!dayStartAt || tStart < dayStartAt)) dayStartAt = tStart;
-    if (tEnd && (!dayEndAt || tEnd > dayEndAt)) dayEndAt = tEnd;
+    const taskIntervals = pomGetTaskIntervals(t);
+    taskIntervals.forEach(i => dayIntervalsRaw.push(i));
     if (t.completed) {
       completedCount++;
       completedDone += done;
@@ -1503,11 +1644,12 @@ function pomBuildHistoryExport(date, tasks) {
   const totalPlanned = totalEst + totalExt1 + totalExt2;
   const diff = completedCount > 0 ? completedDone - completedEst : null;
   const diffText = diff === null ? '-' : `${diff > 0 ? '+' : ''}${diff}`;
-  const dayRangeText = pomFormatTimeRange(dayStartAt, dayEndAt);
-  const daySpanText = dayStartAt && dayEndAt ? pomFormatDuration(dayEndAt - dayStartAt) : '-';
+  const dayIntervals = pomMergeIntervals(dayIntervalsRaw);
+  const dayRangeText = pomFormatIntervalList(dayIntervals);
+  const daySpanText = pomFormatDuration(pomSumIntervalDuration(dayIntervals));
 
   const lines = [];
-  lines.push('Huge-Clock 导出 v1');
+  lines.push('Huge-Clock 导出 v2');
   lines.push(`日期: ${dStr}`);
   lines.push(`任务数: ${totalTasks}`);
   lines.push(`完成: ${completedCount}/${totalTasks} (${completionRate}%)`);
@@ -1530,10 +1672,9 @@ function pomBuildHistoryExport(date, tasks) {
     const planned = est + ext1 + ext2;
     const taskDiff = done - planned;
     const taskDiffText = `${taskDiff > 0 ? '+' : ''}${taskDiff}`;
-    const taskStart = t.firstFocusAt || null;
-    const taskEnd = t.completedAt || t.lastFocusAt || null;
-    const taskRange = pomFormatTimeRange(taskStart, taskEnd);
-    const taskSpan = taskStart && taskEnd ? pomFormatDuration(taskEnd - taskStart) : '-';
+    const taskIntervals = pomGetTaskIntervals(t);
+    const taskRange = pomFormatIntervalList(taskIntervals);
+    const taskSpan = pomFormatDuration(pomSumIntervalDuration(taskIntervals));
     lines.push(`${idx + 1}. ${t.text}`);
     lines.push(`   状态: ${t.completed ? '已完成' : '未完成'}`);
     lines.push(`   预估: ${est} | 二次: ${ext1} | 三次: ${ext2} | 总计: ${planned}`);
@@ -1967,8 +2108,6 @@ document.querySelectorAll('.todo-list').forEach(list => {
     }, 400);
   });
 });
-
-
 
 
 
