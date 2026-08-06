@@ -192,18 +192,21 @@ function pomPlayChime() {
   }
 }
 // ── 发送系统通知 ──────────────────────────────
+// 通知图标：相对路径解析为绝对 URL，本地调试与 GitHub Pages 部署均可用
+const NOTIFICATION_ICON = new URL('files/clock.png', location.href).href;
+
 function pomSystemNotify(msg) {
   if (!("Notification" in window)) return;
 
   const showNotification = () => {
     try {
       // 桌面端浏览器优先直接调用
-      new Notification("Huge Clock", { body: msg, icon: "favicon.ico" });
+      new Notification("Huge Clock", { body: msg, icon: NOTIFICATION_ICON });
     } catch (e) {
       // 安卓等移动端浏览器会抛出 TypeError，要求必须使用 Service Worker
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then(registration => {
-          registration.showNotification("Huge Clock", { body: msg, icon: "favicon.ico" });
+          registration.showNotification("Huge Clock", { body: msg, icon: NOTIFICATION_ICON });
         });
       }
     }
@@ -523,6 +526,7 @@ function pomKeyR() {
       t.resetCount = (t.resetCount || 0) + 1;
       pomSaveTodos();
     }
+    pomSaveSession(); // 同步重置后的剩余时间到会话，避免刷新恢复到旧值
     pomNotify('🔄 计时已重置', false);
   } else {
     // 2. 当前在休息中(1或2) -> 跳过休息，进入下一个番茄状态
@@ -581,6 +585,7 @@ function revertOnePomodoro() {
     }
   }
   if(pomViewMode === 'today') pomRenderTodos();
+  pomSaveSession(); // 同步重置后的剩余时间到会话
   pomRender();
 }
 // Esc：关闭面板
@@ -998,11 +1003,18 @@ function pomLoadTodos() {
     console.warn("读取番茄钟数据失败", e);
   }
 }
+// HTML 转义：所有用户输入文本渲染进 innerHTML 前必须经过此函数（防 XSS）
+function pomEscapeHtml(str) {
+  return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
 function pomGeneratePomsHtml(item) {
-  let est = item.est || 1;
-  let ext1 = item.ext1 || 0;
-  let ext2 = item.ext2 || 0;
-  let done = item.done || 0;
+  // 上限保护：防止导入或历史脏数据中的超大预估/完成数导致渲染海量 emoji 卡死
+  let est = Math.min(item.est || 1, 12);
+  let ext1 = Math.min(item.ext1 || 0, 12);
+  let ext2 = Math.min(item.ext2 || 0, 12);
+  let done = Math.min(item.done || 0, 36);
   let html = '';
   for (let i = 0; i < est; i++) {
     if (done > i) html += '🍅';
@@ -1139,7 +1151,7 @@ function pomRenderTodos() {
     }
 
     el.innerHTML = `
-      <div class="todo-main-row"><input type="checkbox" class="todo-chk" ${item.completed ? 'checked' : ''}><div class="todo-info"><div class="todo-name" title="${item.text}">${item.text}</div><div style="display:flex; align-items:center;"><div class="todo-poms">${poms}</div>${interruptsHtml}</div></div><button class="todo-play" title="应用此待办到番茄钟"><span class="todo-btn-glyph">▶</span></button><button class="todo-del" title="删除此待办"><span class="todo-btn-glyph">✕</span></button></div>`;
+      <div class="todo-main-row"><input type="checkbox" class="todo-chk" ${item.completed ? 'checked' : ''}><div class="todo-info"><div class="todo-name" title="${pomEscapeHtml(item.text)}">${pomEscapeHtml(item.text)}</div><div style="display:flex; align-items:center;"><div class="todo-poms">${poms}</div>${interruptsHtml}</div></div><button class="todo-play" title="应用此待办到番茄钟"><span class="todo-btn-glyph">▶</span></button><button class="todo-del" title="删除此待办"><span class="todo-btn-glyph">✕</span></button></div>`;
 
     // 允许点击预计番茄图标区域来修改番茄数
     const pomsContainer = el.querySelector('.todo-poms');
@@ -1313,7 +1325,7 @@ function pomRenderInventory() {
     const el = document.createElement('div');
     el.className = `todo-item ${item.completed ? 'completed' : ''}`;
     el.innerHTML = `
-      <div class="todo-main-row"><div class="todo-info" style="padding-left: 8px;"><div class="todo-name" title="${item.text}">${item.text}</div></div><button class="todo-play todo-inv-add" title="添加到今日待办" style="margin-right: 8px;"><span class="todo-btn-glyph" style="font-size: 20px;">＋</span></button><button class="todo-del" title="删除此活动"><span class="todo-btn-glyph">✕</span></button></div>`;
+      <div class="todo-main-row"><div class="todo-info" style="padding-left: 8px;"><div class="todo-name" title="${pomEscapeHtml(item.text)}">${pomEscapeHtml(item.text)}</div></div><button class="todo-play todo-inv-add" title="添加到今日待办" style="margin-right: 8px;"><span class="todo-btn-glyph" style="font-size: 20px;">＋</span></button><button class="todo-del" title="删除此活动"><span class="todo-btn-glyph">✕</span></button></div>`;
     // 移入今日待办
     const addBtn = el.querySelector('.todo-play');
     addBtn.addEventListener('click', (e) => {
@@ -1499,7 +1511,7 @@ function pomParseImport(text) {
     const name = parts[0];
     const est = parseInt(parts[1], 10);
     if (!name) return { error: `第 ${i + 1} 行任务名为空` };
-    if (!Number.isFinite(est) || est < 1) return { error: `第 ${i + 1} 行预估番茄数无效` };
+    if (!Number.isFinite(est) || est < 1 || est > 12) return { error: `第 ${i + 1} 行预估番茄数应在 1~12 之间` };
     items.push({ text: name, est });
   }
   if (items.length === 0) return { error: '未识别到任何任务' };
@@ -1938,7 +1950,7 @@ function pomRenderHistory() {
       html += `
         <div class="hist-task-item ${item.completed ? 'completed' : 'uncompleted'}">
           <div class="hist-task-main">
-            <div class="hist-task-name" title="${item.text}">${item.text}</div>
+            <div class="hist-task-name" title="${pomEscapeHtml(item.text)}">${pomEscapeHtml(item.text)}</div>
             <div class="hist-task-diff ${taskDiffClass}">${taskDiffText}</div>
           </div>
           <div class="hist-task-details">
