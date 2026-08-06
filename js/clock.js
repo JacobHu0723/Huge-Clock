@@ -40,14 +40,14 @@ document.addEventListener('visibilitychange', () => {
 
 /* ══════════════════════════════════════════════
    OLED 防烧屏像素位移（JS 离散跳变）
-   替代原 360s CSS 连续动画：每 60 秒瞬间平移 1~2 像素，
+   替代原 360s CSS 连续动画：每 60 秒瞬间平移 3 像素，
    避免 GPU 持续合成动画层导致发热；后台时暂停跳变。
    ══════════════════════════════════════════════ */
 const BURN_IN_PATTERN = [
-  { x: -1, y: -1 },
-  { x:  1, y: -1 },
-  { x:  1, y:  1 },
-  { x: -1, y:  1 },
+  { x: -3, y: -3 },
+  { x:  3, y: -3 },
+  { x:  3, y:  3 },
+  { x: -3, y:  3 },
 ];
 let burnInStep = 0;
 setInterval(() => {
@@ -115,21 +115,27 @@ if ('serviceWorker' in navigator) {
 let wakeLockSentinel = null;
 
 async function requestWakeLock() {
-  if (!('wakeLock' in navigator)) return; // 不支持：降级为不保活
+  if (!('wakeLock' in navigator)) return false; // 不支持：降级为不保活
   try {
-    if (wakeLockSentinel) return; // 已持有，不重复申请
+    if (wakeLockSentinel) return true; // 已持有，不重复申请
     wakeLockSentinel = await navigator.wakeLock.request('screen');
     // 被系统释放（切后台 / 省电策略）后置空，便于回前台重新申请
     wakeLockSentinel.addEventListener('release', () => { wakeLockSentinel = null; });
+    return true;
   } catch (e) {
     wakeLockSentinel = null;
+    return false;
   }
 }
 
 const enableWakeLockOnFirstInteraction = () => {
-  requestWakeLock();
-  document.removeEventListener('pointerdown', enableWakeLockOnFirstInteraction);
-  document.removeEventListener('keydown', enableWakeLockOnFirstInteraction);
+  requestWakeLock().then(ok => {
+    if (ok) {
+      // 申请成功后才移除监听器；失败则保留，等待下次交互重试（如低电量/策略拒绝）
+      document.removeEventListener('pointerdown', enableWakeLockOnFirstInteraction);
+      document.removeEventListener('keydown', enableWakeLockOnFirstInteraction);
+    }
+  });
 };
 document.addEventListener('pointerdown', enableWakeLockOnFirstInteraction);
 document.addEventListener('keydown', enableWakeLockOnFirstInteraction);

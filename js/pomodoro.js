@@ -352,8 +352,8 @@ function pomStartTimer() {
       lastFocusAt: null,
       focusSessions: [],
       breakSessions: [],
-      skippedBreaks: 0,
-      resetCount: 0,
+      skippedBreaks: pomSessionSkippedBreaks || 0, // 自由番茄期间的跳过/重置并入新任务
+      resetCount: pomSessionResets || 0,
       revertCount: 0,
       isNew: true,
       intInterrupts: pomSessionIntInterrupts || 0,
@@ -846,6 +846,21 @@ function pomSaveTodos() {
 // ── 运行中会话持久化（刷新 / 进程被杀后恢复计时）──
 const POM_SESSION_KEY = 'pomodoro_session';
 function pomSaveSession() {
+  // 无实际会话（从未开始计时）时不写入：避免初始态被误存成会话
+  // （如页面关闭/刷新时 visibilitychange 触发保存，把 running=false 的初始态写成 session）
+  const hasSession = pomRunning ||
+    pomCurrentTodoId != null ||
+    pomTotalFocusDone > 0 ||
+    pomFocusStreak > 0 ||
+    pomTimeLeft !== POM_PHASES[0].duration ||
+    pomSessionIntInterrupts > 0 ||
+    pomSessionSkippedBreaks > 0 ||
+    pomSessionResets > 0 ||
+    pomTaskInputEl.value.trim() !== '';
+  if (!hasSession) {
+    localStorage.removeItem(POM_SESSION_KEY);
+    return;
+  }
   const data = {
     phaseIdx: pomPhaseIdx,
     running: pomRunning,
@@ -931,14 +946,38 @@ function pomRestoreSession() {
       pomInterval = setInterval(pomTick, 1000);
       pomNotify('🔄 已恢复休息计时', false);
     } else {
-      // 休息早已结束：进入下一个番茄钟，暂停等待（“准备”状态）
-      pomPhaseIdx = 0;
-      pomTimeLeft = POM_PHASES[0].duration;
-      pomFocusStartAt = null;
+      // 休息早已结束：记录这段被杀的休息，再进入下一个番茄钟，暂停等待（“准备”状态）
+      if (pomCurrentTodoId) {
+        const t = pomTodos.find(x => x.id === pomCurrentTodoId);
+        if (t && pomBreakStartAt && s.restEndAt >= pomBreakStartAt) {
+          if (!Array.isArray(t.breakSessions)) t.breakSessions = [];
+          t.breakSessions.push({ startAt: pomBreakStartAt, endAt: s.restEndAt });
+          pomSaveTodos();
+        }
+      }
       pomBreakStartAt = null;
-      pauseUI();
-      pomSaveSession();
-      pomNotify('⏱ 休息已结束，准备开始下一个番茄钟', false);
+      // 与正常休息结束一致：达标则重置等待新任务，未达标则进入专注准备态
+      if (pomIsCurrentTodoCompleted()) {
+        pomCurrentTodoId = null;
+        pomTaskInputEl.value = '';
+      }
+      if (pomTotalFocusDone >= pomTargetSessions) {
+        pomTotalFocusDone = 0;
+        pomCurrentTodoId = null;
+        pomSessionIntInterrupts = 0;
+        pomSessionExtInterrupts = 0;
+        pomTaskInputEl.value = '';
+        pauseUI();
+        pomClearSession();
+        pomNotify('✨ 任务已达标，开始下一个任务吧！', false);
+      } else {
+        pomPhaseIdx = 0;
+        pomTimeLeft = POM_PHASES[0].duration;
+        pomFocusStartAt = null;
+        pauseUI();
+        pomSaveSession();
+        pomNotify('⏱ 休息已结束，准备开始下一个番茄钟', false);
+      }
     }
   } else {
     // 休息暂停中被杀：恢复冻结的剩余秒数，暂停等待
@@ -1005,6 +1044,7 @@ function pomLoadTodos() {
       }
       pomTodos = [];
       pomCurrentTodoId = null;
+      pomClearSession(); // 跨天完全重置：不恢复昨天的会话，新的一天从零开始
       // 跨天时清理活动清单中已完成的任务，保留未完成的
       pomInventory = pomInventory.filter(i => !i.completed);
     } else {
@@ -2185,9 +2225,13 @@ pomRestoreSession();
 pomRenderTodos();
 if (todoImportBtn) todoImportBtn.style.display = 'inline-flex';
 
-// 回前台立即重算剩余时间（后台 setInterval 可能被浏览器节流，导致计时走慢）
+// 后台节流保护：切后台前保存一次精确剩余（专注冻结依赖 tick 保存，后台 tick 会被节流），回前台立即重算
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && pomRunning) pomTick();
+  if (document.hidden) {
+    pomSaveSession();
+  } else if (pomRunning) {
+    pomTick();
+  }
 });
 
 /* ══════════════════════════════════════════════

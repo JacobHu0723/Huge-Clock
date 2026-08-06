@@ -29,7 +29,7 @@ body {
   cursor: pointer;
   transition: color 2s ease, text-shadow 2s ease, transform 0.5s ease;
   
-  /* OLED 防烧屏像素位移已改为 JS 离散跳变（见 clock.js）：每 60s 平移 1~2px，
+  /* OLED 防烧屏像素位移已改为 JS 离散跳变（见 clock.js）：每 60s 平移 3px，
      替代原 360s 连续动画，避免 GPU 持续合成动画层导致发热 */
 }
 
