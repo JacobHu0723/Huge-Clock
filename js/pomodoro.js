@@ -31,6 +31,8 @@ let pomTargetSessions = 4;   // 预计需要的番茄数（默认 4）
 let pomTotalFocusDone = 0;   // 当前任务已完成的专注次数
 let pomSessionIntInterrupts = 0; // 当前未使用待办的内部中断
 let pomSessionExtInterrupts = 0; // 当前未使用待办的外部中断
+let pomSessionSkippedBreaks = 0; // 自由番茄（未绑定待办）的跳过休息计数
+let pomSessionResets = 0;        // 自由番茄（未绑定待办）的重置计数
 // ── 今日待办 状态 ────────────────────────────
 let pomActiveDate = null;  // 当前工作日锚点
 let pomTodos = [];
@@ -525,6 +527,8 @@ function pomKeyR() {
     if (t) {
       t.resetCount = (t.resetCount || 0) + 1;
       pomSaveTodos();
+    } else {
+      pomSessionResets++; // 自由番茄：重置计数记入会话
     }
     pomSaveSession(); // 同步重置后的剩余时间到会话，避免刷新恢复到旧值
     pomNotify('🔄 计时已重置', false);
@@ -537,6 +541,8 @@ function pomKeyR() {
         pomSaveTodos();
         if (pomViewMode === 'today') pomRenderTodos();
       }
+    } else {
+      pomSessionSkippedBreaks++; // 自由番茄：跳过休息计数记入会话
     }
     pomPhaseIdx = 0;
     pomTimeLeft = POM_PHASES[0].duration;
@@ -852,6 +858,8 @@ function pomSaveSession() {
     totalFocusDone: pomTotalFocusDone,
     sessionIntInterrupts: pomSessionIntInterrupts,
     sessionExtInterrupts: pomSessionExtInterrupts,
+    sessionSkippedBreaks: pomSessionSkippedBreaks,
+    sessionResets: pomSessionResets,
     taskName: pomTaskInputEl.value.trim(),
   };
   if (pomPhaseIdx === 0) {
@@ -882,6 +890,8 @@ function pomRestoreSession() {
   if (Number.isFinite(s.totalFocusDone)) pomTotalFocusDone = s.totalFocusDone;
   pomSessionIntInterrupts = s.sessionIntInterrupts || 0;
   pomSessionExtInterrupts = s.sessionExtInterrupts || 0;
+  pomSessionSkippedBreaks = s.sessionSkippedBreaks || 0;
+  pomSessionResets = s.sessionResets || 0;
   if (s.taskName) pomTaskInputEl.value = s.taskName;
   // 切回暂停态 UI（非运行）
   const pauseUI = () => {
@@ -955,6 +965,7 @@ function pomLoadTodos() {
       if (item.skippedBreaks == null && item.skippedPoms != null) {
         item.skippedBreaks = item.skippedPoms;
       }
+      delete item.skippedPoms; // 老字段迁移后清理，保持数据格式统一
       if (!Array.isArray(item.focusSessions)) {
         item.focusSessions = [];
       } else {
@@ -988,6 +999,8 @@ function pomLoadTodos() {
     // 如果日期变了，将上一天的任务归档，清空今日任务
     if (data.today && data.today !== currentDay) {
       if (data.todos && data.todos.length > 0) {
+        normalizeSkippedBreaks(data.todos); // 归档前先归一化，保证历史数据格式统一
+        data.todos.forEach(t => { if (t) delete t.isNew; }); // 清理 UI 动画标记，避免残留进历史
         pomHistory[data.today] = data.todos;
       }
       pomTodos = [];

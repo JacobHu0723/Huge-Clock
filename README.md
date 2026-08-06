@@ -17,8 +17,8 @@
 - **📝 Integrated Todo List**: Organize your day with "Today's Todos" and a backlog "Task List". Add, remove, and link tasks directly to your Pomodoro timer with fluid animations.
 - **🎵 Chill Background Audio**: Built-in focus music. Play, pause, adjust volume, and switch tracks effortlessly using intuitive swipe gestures or keyboard shortcuts. Featuring a sleek Volume HUD.
 - **📱 Fully Responsive & Touch-Friendly**: A tailored experience for both mouse and touch users. On mobile devices, enjoy smooth touch logic, gesture-based volume/track controls, and smart tactile responses.
-- **🛡️ Screen Protection**: Keep your focus uninterrupted while taking care of your hardware. Includes `NoSleep` functionality to prevent screen lock, alongside **Always-On Display (AOD) Protection** to prevent screen burn-in.
-- **⚡ Progressive Web App (PWA)**: Install it directly to your device (iOS/Android/Desktop) and use it offline, anytime, anywhere!
+- **🛡️ Screen Protection**: Keep the screen awake while you focus, and keep your OLED display safe long-term — automatic burn-in prevention with subtle pixel shifting and an idle always-on-display mode, all battery-friendly (no screen wake-lock drain when running in the background).
+- **⚡ Progressive Web App (PWA)**: Install it directly to your device (iOS/Android/Desktop) and use it offline, anytime, anywhere! Your in-progress Pomodoro session survives a tab refresh or even a killed background process.
 
 ## ⌨️ Controls & Shortcuts
 
@@ -53,6 +53,6 @@ For developers tweaking the Pomodoro system, two global debug functions are expo
 
 ## 📜 License & History
 
-This project has continually evolved from a simple big clock to a comprehensive productivity hub. Check the [Commit History](https://github.com/jacobhu0723/Huge-Clock/commits/main) for updates on the latest UI revamps, fluid gesture implementations, and Pomodoro system refactors.
+This project has continually evolved from a simple big clock to a comprehensive productivity hub. Check the [Commit History](https://github.com/jacobhu0723/Huge-Clock/commits/master) for updates on the latest UI revamps, fluid gesture implementations, and Pomodoro system refactors.
 
 Developed with Vanilla HTML, CSS, JavaScript, and ❤️.
