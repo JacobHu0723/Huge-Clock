@@ -287,6 +287,8 @@ function pomStopForCompletedTodo(message) {
   pomTotalFocusDone = 0;
   pomSessionIntInterrupts = 0;
   pomSessionExtInterrupts = 0;
+  pomSessionSkippedBreaks = 0;
+  pomSessionResets = 0;
   pomCurrentTodoId = null;
   pomFocusStartAt = null;
   pomPauseTimer();           // 同时解锁输入框
@@ -361,6 +363,11 @@ function pomStartTimer() {
     };
     pomTodos.push(newItem);
     pomCurrentTodoId = newItem.id;
+    // 自由番茄计数已并入新任务，清零会话计数，避免解绑后再绑时重复归属
+    pomSessionIntInterrupts = 0;
+    pomSessionExtInterrupts = 0;
+    pomSessionSkippedBreaks = 0;
+    pomSessionResets = 0;
     pomSaveTodos();
     if(pomViewMode === 'today') {
       pomRenderTodos();
@@ -478,6 +485,8 @@ function pomOnPhaseEnd() {
       pomCurrentTodoId  = null;
       pomSessionIntInterrupts = 0;
       pomSessionExtInterrupts = 0;
+      pomSessionSkippedBreaks = 0;
+      pomSessionResets = 0;
       pomRender();
       pomRenderTodos();
       pomPauseTimer();           // 同时解锁输入框
@@ -962,10 +971,16 @@ function pomRestoreSession() {
         pomTaskInputEl.value = '';
       }
       if (pomTotalFocusDone >= pomTargetSessions) {
+        // 达标：先切回专注初始阶段（对照正常 rest-end 路径），否则停留在休息标签却显示 25:00，
+        // 此时按开始会以休息阶段跑一个 25 分钟的"休息"
+        pomPhaseIdx = 0;
+        pomTimeLeft = POM_PHASES[0].duration;
         pomTotalFocusDone = 0;
         pomCurrentTodoId = null;
         pomSessionIntInterrupts = 0;
         pomSessionExtInterrupts = 0;
+        pomSessionSkippedBreaks = 0;
+        pomSessionResets = 0;
         pomTaskInputEl.value = '';
         pauseUI();
         pomClearSession();
