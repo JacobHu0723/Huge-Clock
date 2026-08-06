@@ -29,8 +29,8 @@ body {
   cursor: pointer;
   transition: color 2s ease, text-shadow 2s ease, transform 0.5s ease;
   
-  /* 启用 OLED 防烧屏像素微距位移：以 6 分钟为一周期，随机在很小的范围内平移 */
-  animation: oled-anti-burn-in 360s ease-in-out infinite;
+  /* OLED 防烧屏像素位移已改为 JS 离散跳变（见 clock.js）：每 60s 平移 3px，
+     替代原 360s 连续动画，避免 GPU 持续合成动画层导致发热 */
 }
 
 /* ── 音量提示 HUD ── */
@@ -1824,17 +1824,8 @@ body.is-touch .todo-icon-btn[data-key]::after {
     overflow: hidden;
   }
 
-/* OLED 防烧屏微距像素位移 (Pixel Shifting) */
-@keyframes oled-anti-burn-in {
-  0%   { transform: translate(0px, 0px); }
-  14%  { transform: translate(6px, 3px); }
-  28%  { transform: translate(9px, -2px); }
-  43%  { transform: translate(4px, -8px); }
-  57%  { transform: translate(-3px, -6px); }
-  71%  { transform: translate(-7px, 2px); }
-  85%  { transform: translate(-4px, 7px); }
-  100% { transform: translate(0px, 0px); }
-}
+/* OLED 防烧屏像素位移已迁移至 clock.js（JS 每 60s 离散跳变 1~2px），
+   原 360s CSS 连续动画（@keyframes oled-anti-burn-in）已移除 */
 
 /* 息屏/空闲模式：彻底解决大字体重叠烧屏 - iOS极简风格线框 */
 body.oled-idle-mode #main {

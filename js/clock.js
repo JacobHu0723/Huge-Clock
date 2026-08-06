@@ -2,19 +2,60 @@
 
 /* ══════════════════════════════════════════════
    时钟
-   每 500 ms 刷新一次，确保整秒切换时不会漏掉
+   每 500 ms 轮询，秒数变化才写 DOM（避免每秒 2 次无效写入）；
+   页面切后台时停表，回前台立即刷新并恢复。
    ══════════════════════════════════════════════ */
 const mainEl = document.getElementById('main');
+let lastClockSeconds = -1;
+let clockInterval = null;
 
-function updateClock() {
+function updateClock(force = false) {
   const d   = new Date();
   const pad = n => String(n).padStart(2, '0');
+  const s   = d.getSeconds();
+  if (!force && s === lastClockSeconds) return; // 秒数未变，跳过 DOM 写入
+  lastClockSeconds = s;
   mainEl.textContent =
-    `${pad(d.getHours())} : ${pad(d.getMinutes())} : ${pad(d.getSeconds())}`;
+    `${pad(d.getHours())} : ${pad(d.getMinutes())} : ${pad(s)}`;
 }
 
-setInterval(updateClock, 500);
-updateClock(); // 立即渲染，避免首次显示延迟
+function startClock() {
+  clearInterval(clockInterval);
+  clockInterval = setInterval(() => updateClock(), 500);
+}
+
+startClock();
+updateClock(true); // 立即渲染，避免首次显示延迟
+
+// 后台停表：页面不可见时不写 DOM，回前台立即刷新当前时间
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    clearInterval(clockInterval);
+    clockInterval = null;
+  } else {
+    updateClock(true);
+    startClock();
+  }
+});
+
+/* ══════════════════════════════════════════════
+   OLED 防烧屏像素位移（JS 离散跳变）
+   替代原 360s CSS 连续动画：每 60 秒瞬间平移 3 像素，
+   避免 GPU 持续合成动画层导致发热；后台时暂停跳变。
+   ══════════════════════════════════════════════ */
+const BURN_IN_PATTERN = [
+  { x: -3, y: -3 },
+  { x:  3, y: -3 },
+  { x:  3, y:  3 },
+  { x: -3, y:  3 },
+];
+let burnInStep = 0;
+setInterval(() => {
+  if (document.hidden) return; // 后台屏幕不显示，无需位移
+  burnInStep = (burnInStep + 1) % BURN_IN_PATTERN.length;
+  const p = BURN_IN_PATTERN[burnInStep];
+  mainEl.style.transform = `translate(${p.x}px, ${p.y}px)`;
+}, 60000);
 
 /* ══════════════════════════════════════════════
    字体与布局自适应
@@ -66,10 +107,43 @@ if ('serviceWorker' in navigator) {
 }
 
 /* ══════════════════════════════════════════════
-   NoSleep：阻止屏幕休眠
+   Wake Lock：阻止屏幕休眠（原生 Screen Wake Lock API）
+   用户首次交互后才启用，避免页面一打开就保活耗电；
+   切后台时浏览器自动释放，回前台重新申请；
+   不支持 Wake Lock 的设备降级为不保活（屏幕正常休眠）。
    ══════════════════════════════════════════════ */
-const noSleep = new NoSleep();
-window.addEventListener('load', () => noSleep.enable(), { once: true });
+let wakeLockSentinel = null;
+
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator)) return false; // 不支持：降级为不保活
+  try {
+    if (wakeLockSentinel) return true; // 已持有，不重复申请
+    wakeLockSentinel = await navigator.wakeLock.request('screen');
+    // 被系统释放（切后台 / 省电策略）后置空，便于回前台重新申请
+    wakeLockSentinel.addEventListener('release', () => { wakeLockSentinel = null; });
+    return true;
+  } catch (e) {
+    wakeLockSentinel = null;
+    return false;
+  }
+}
+
+const enableWakeLockOnFirstInteraction = () => {
+  requestWakeLock().then(ok => {
+    if (ok) {
+      // 申请成功后才移除监听器；失败则保留，等待下次交互重试（如低电量/策略拒绝）
+      document.removeEventListener('pointerdown', enableWakeLockOnFirstInteraction);
+      document.removeEventListener('keydown', enableWakeLockOnFirstInteraction);
+    }
+  });
+};
+document.addEventListener('pointerdown', enableWakeLockOnFirstInteraction);
+document.addEventListener('keydown', enableWakeLockOnFirstInteraction);
+
+// 切到后台时 Wake Lock 被浏览器自动释放；回前台重新申请
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) requestWakeLock();
+});
 
 /* ══════════════════════════════════════════════
    OLED 防烧屏空闲检测 (Idle Mode / Screensaver)
