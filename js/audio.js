@@ -16,8 +16,12 @@ const TRACKS = [
 let currentIndex = 0;
 let isPlaying    = false;
 
-const music  = new Audio(TRACKS[currentIndex]);
-music.loop   = true;
+// 先建无 src 的 Audio 并设 preload=none，再赋 src：
+// 避免页面一打开就预载第一首 1.9MB 音频，仅播放时才加载
+const music = new Audio();
+music.preload = 'none';
+music.src  = TRACKS[currentIndex];
+music.loop = true;
 
 /* ══════════════════════════════════════════════
    播放 / 暂停

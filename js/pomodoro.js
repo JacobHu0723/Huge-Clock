@@ -26,6 +26,7 @@ let pomLastFocusEndAt = null; // 最近一次专注结束时间
 let pomFocusStartAt = null;   // 当前专注开始时间
 let pomBreakStartAt = null;   // 当前休息开始时间
 let pomInterval = null;
+let pomEndAt = null;         // 当前阶段结束的绝对时间戳（时间戳驱动计时）
 let pomTargetSessions = 4;   // 预计需要的番茄数（默认 4）
 let pomTotalFocusDone = 0;   // 当前任务已完成的专注次数
 let pomSessionIntInterrupts = 0; // 当前未使用待办的内部中断
@@ -284,6 +285,7 @@ function pomStopForCompletedTodo(message) {
   pomCurrentTodoId = null;
   pomFocusStartAt = null;
   pomPauseTimer();           // 同时解锁输入框
+  pomClearSession();
   pomTaskInputEl.value = '';
   pomRender();
   pomRenderTodos();
@@ -291,10 +293,19 @@ function pomStopForCompletedTodo(message) {
 }
 // ── 计时器逻辑 ────────────────────────────────
 function pomTick() {
-  if (pomTimeLeft > 0) {
-    pomTimeLeft--;
-    pomRender();
+  // 时间戳驱动：按 endAt 与当前时间的差值计算剩余，后台 setInterval 被节流时依然计时准确
+  if (pomEndAt == null) {
+    pomEndAt = Date.now() + pomTimeLeft * 1000;
+  }
+  const remaining = Math.max(0, Math.round((pomEndAt - Date.now()) / 1000));
+  if (remaining > 0) {
+    if (remaining !== pomTimeLeft) {
+      pomTimeLeft = remaining;
+      pomRender();
+      if (pomPhaseIdx === 0) pomSaveSession(); // 专注冻结：被杀时保留最近一次剩余
+    }
   } else {
+    pomTimeLeft = 0;
     clearInterval(pomInterval);
     pomRunning = false;
     pomPanelEl.classList.remove('running');
@@ -375,15 +386,19 @@ function pomStartTimer() {
   pomFabEl.classList.add('running');
   pomTaskInputEl.setAttribute('readonly', '');
   pomToggleIconEl.textContent = '⏸';
+  pomEndAt = Date.now() + pomTimeLeft * 1000;
+  pomSaveSession();
   pomInterval = setInterval(pomTick, 1000);
 }
 function pomPauseTimer() {
   clearInterval(pomInterval);
+  pomEndAt = null;
   pomRunning = false;
   pomPanelEl.classList.remove('running');
   pomFabEl.classList.remove('running');
   pomTaskInputEl.removeAttribute('readonly');
   pomToggleIconEl.textContent = '▶';
+  pomSaveSession();
 }
 // ── 阶段切换 ──────────────────────────────────
 function pomOnPhaseEnd() {
@@ -461,6 +476,7 @@ function pomOnPhaseEnd() {
       pomRender();
       pomRenderTodos();
       pomPauseTimer();           // 同时解锁输入框
+      pomClearSession();
       pomTaskInputEl.value = '';
       pomNotify('✨ 开始下一个任务吧！', true);
     } else {
@@ -772,6 +788,7 @@ pomRender();
 // ── 调试辅助函数 ──────────────────────────────
 window._pomSkip = function(seconds = 10) {
   pomTimeLeft = seconds;
+  if (pomRunning) { pomEndAt = Date.now() + seconds * 1000; pomSaveSession(); }
   pomRender();
   console.log(`%c[Debug] %c番茄钟已快进至剩余 ${seconds} 秒`, 'color: #ff7043; font-weight: bold;', 'color: inherit;');
   return `快进成功: 剩 ${seconds} 秒`;
@@ -814,6 +831,107 @@ function pomSaveTodos() {
   };
   localStorage.setItem('pomodoro_data', JSON.stringify(data));
   if (typeof pomRenderHistory === 'function' && pomViewMode === 'history') pomRenderHistory();
+}
+// ── 运行中会话持久化（刷新 / 进程被杀后恢复计时）──
+const POM_SESSION_KEY = 'pomodoro_session';
+function pomSaveSession() {
+  const data = {
+    phaseIdx: pomPhaseIdx,
+    running: pomRunning,
+    currentTodoId: pomCurrentTodoId,
+    focusStreak: pomFocusStreak,
+    lastFocusEndAt: pomLastFocusEndAt,
+    focusStartAt: pomFocusStartAt,
+    breakStartAt: pomBreakStartAt,
+    targetSessions: pomTargetSessions,
+    totalFocusDone: pomTotalFocusDone,
+    sessionIntInterrupts: pomSessionIntInterrupts,
+    sessionExtInterrupts: pomSessionExtInterrupts,
+    taskName: pomTaskInputEl.value.trim(),
+  };
+  if (pomPhaseIdx === 0) {
+    // 专注：退出即冻结，保存剩余秒数（被杀/刷新后回到同一剩余值）
+    data.focusTimeLeft = Math.max(1, Math.round(pomTimeLeft));
+  } else if (pomRunning && pomEndAt != null) {
+    // 休息运行中：时间正常流逝，保存绝对结束时间戳
+    data.restEndAt = pomEndAt;
+  } else {
+    // 休息暂停：冻结剩余秒数
+    data.restTimeLeft = Math.max(1, Math.round(pomTimeLeft));
+  }
+  localStorage.setItem(POM_SESSION_KEY, JSON.stringify(data));
+}
+function pomClearSession() {
+  localStorage.removeItem(POM_SESSION_KEY);
+}
+function pomRestoreSession() {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(POM_SESSION_KEY) || 'null'); } catch (e) { s = null; }
+  if (!s || !Number.isFinite(s.phaseIdx)) return;
+  pomPhaseIdx = Math.min(Math.max(s.phaseIdx, 0), POM_PHASES.length - 1);
+  pomCurrentTodoId = s.currentTodoId || null;
+  pomFocusStreak = s.focusStreak || 0;
+  pomLastFocusEndAt = s.lastFocusEndAt || null;
+  pomBreakStartAt = s.breakStartAt || null;
+  if (Number.isFinite(s.targetSessions)) pomTargetSessions = s.targetSessions;
+  if (Number.isFinite(s.totalFocusDone)) pomTotalFocusDone = s.totalFocusDone;
+  pomSessionIntInterrupts = s.sessionIntInterrupts || 0;
+  pomSessionExtInterrupts = s.sessionExtInterrupts || 0;
+  if (s.taskName) pomTaskInputEl.value = s.taskName;
+  // 切回暂停态 UI（非运行）
+  const pauseUI = () => {
+    pomRunning = false;
+    pomEndAt = null;
+    pomPanelEl.classList.remove('running');
+    pomFabEl.classList.remove('running');
+    pomTaskInputEl.removeAttribute('readonly');
+    pomToggleIconEl.textContent = '▶';
+  };
+  if (pomPhaseIdx === 0) {
+    // 专注：恢复冻结的剩余秒数，暂停等待（“准备”状态，等待用户点击开始）
+    pomTimeLeft = Number.isFinite(s.focusTimeLeft) ? s.focusTimeLeft : POM_PHASES[0].duration;
+    pomFocusStartAt = null; // 被杀/暂停时段不计入本次专注，重新开始后重新计时
+    pauseUI();
+    if (pomIsCurrentTodoCompleted()) {
+      pomClearSession();
+      pomCurrentTodoId = null;
+      pomTaskInputEl.value = '';
+    } else {
+      pomSaveSession(); // 同步 session 为暂停态
+    }
+    pomNotify('🔄 已恢复专注（暂停中），点击开始继续', false);
+  } else if (Number.isFinite(s.restEndAt)) {
+    // 休息运行中被杀：时间照常流逝
+    const remaining = Math.max(0, Math.round((s.restEndAt - Date.now()) / 1000));
+    if (remaining > 0) {
+      // 休息尚未结束：继续倒计时（误差不超过 setInterval 粒度）
+      pomTimeLeft = remaining;
+      pomEndAt = s.restEndAt;
+      pomRunning = true;
+      pomPanelEl.classList.add('running');
+      pomFabEl.classList.add('running');
+      pomTaskInputEl.setAttribute('readonly', '');
+      pomToggleIconEl.textContent = '⏸';
+      clearInterval(pomInterval);
+      pomInterval = setInterval(pomTick, 1000);
+      pomNotify('🔄 已恢复休息计时', false);
+    } else {
+      // 休息早已结束：进入下一个番茄钟，暂停等待（“准备”状态）
+      pomPhaseIdx = 0;
+      pomTimeLeft = POM_PHASES[0].duration;
+      pomFocusStartAt = null;
+      pomBreakStartAt = null;
+      pauseUI();
+      pomSaveSession();
+      pomNotify('⏱ 休息已结束，准备开始下一个番茄钟', false);
+    }
+  } else {
+    // 休息暂停中被杀：恢复冻结的剩余秒数，暂停等待
+    pomTimeLeft = Number.isFinite(s.restTimeLeft) ? s.restTimeLeft : POM_PHASES[pomPhaseIdx].duration;
+    pauseUI();
+    pomNotify('🔄 已恢复休息（暂停中）', false);
+  }
+  pomRender();
 }
 function pomLoadTodos() {
   try {
@@ -1355,12 +1473,7 @@ function pomToggleImportDialog(force) {
   if (pomImportVisible) {
     pomImportBackdrop.classList.add('visible');
     pomImportDialog.classList.add('visible');
-    setTimeout(() => {
-      if (pomImportInput) {
-        pomImportInput.focus();
-        pomImportInput.select();
-      }
-    }, 60);
+    // 不自动聚焦输入框，避免手机端打开导入框即弹出输入法
   } else {
     pomImportBackdrop.classList.remove('visible');
     pomImportDialog.classList.remove('visible');
@@ -1882,7 +1995,7 @@ function pomToggleTodoPanel(forceStage) {
     void todoPanelEl.offsetHeight; // 强制重绘，应用起点位置
     todoPanelEl.style.transition = ''; // 恢复 CSS 过渡
     todoPanelEl.classList.add('visible');
-    setTimeout(() => todoInputEl.focus(), 50);
+    // 不再自动聚焦输入框：手机端打开面板会直接弹出输入法遮挡屏幕
   } else {
     todoPanelEl.classList.remove('visible');
   }
@@ -2043,8 +2156,14 @@ document.addEventListener('click', () => {
 });
 
 pomLoadTodos();
+pomRestoreSession();
 pomRenderTodos();
 if (todoImportBtn) todoImportBtn.style.display = 'inline-flex';
+
+// 回前台立即重算剩余时间（后台 setInterval 可能被浏览器节流，导致计时走慢）
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && pomRunning) pomTick();
+});
 
 /* ══════════════════════════════════════════════
    触摸橡皮筋效果支持（Overscroll 弹性回弹）
