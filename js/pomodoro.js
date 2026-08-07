@@ -967,14 +967,12 @@ function pomSettleKilledRest(endAt) {
     pomTaskInputEl.value = '';
     pomPauseUI();
     pomClearSession();
-    pomNotify('✨ 任务已达标，开始下一个任务吧！', false);
   } else {
     pomPhaseIdx = 0;
     pomTimeLeft = POM_PHASES[0].duration;
     pomFocusStartAt = null;
     pomPauseUI();
     pomSaveSession();
-    pomNotify('⏱ 休息已结束，准备开始下一个番茄钟', false);
   }
   pomRender();
 }
@@ -1023,7 +1021,6 @@ function pomRestoreSession() {
         pomClearSession();
       } else {
         pomSaveSession(); // 同步 session 为暂停态
-        pomNotify('🔄 已恢复专注（暂停中），点击开始继续', false);
       }
     }
   } else if (Number.isFinite(s.restEndAt)) {
@@ -1040,7 +1037,6 @@ function pomRestoreSession() {
       pomToggleIconEl.textContent = '⏸';
       clearInterval(pomInterval);
       pomInterval = setInterval(pomTick, 1000);
-      pomNotify('🔄 已恢复休息计时', false);
     } else {
       // 休息早已结束：结算这段被杀的休息（记录 breakSession + 达标检查），再进入下一个番茄钟
       pomSettleKilledRest(s.restEndAt);
@@ -1057,7 +1053,6 @@ function pomRestoreSession() {
     // 休息暂停中被杀：恢复冻结的剩余秒数，暂停等待
     pomTimeLeft = Number.isFinite(s.restTimeLeft) ? s.restTimeLeft : POM_PHASES[pomPhaseIdx].duration;
     pomPauseUI();
-    pomNotify('🔄 已恢复休息（暂停中）', false);
   }
   pomRender();
 }
