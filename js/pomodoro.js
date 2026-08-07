@@ -1001,7 +1001,7 @@ function pomRestoreSession() {
     }
     // 专注：恢复冻结的剩余秒数，暂停等待（“准备”状态，等待用户点击开始）
     pomTimeLeft = Number.isFinite(s.focusTimeLeft) ? s.focusTimeLeft : POM_PHASES[0].duration;
-    pomFocusStartAt = null; // 被杀/暂停时段不计入本次专注，重新开始后重新计时
+    // 保留被杀/退出前的专注起点（与暂停逻辑一致）：恢复后继续计时，历史记录全程含退出空白
     pomPauseUI();
     if (pomIsCurrentTodoCompleted()) {
       pomClearSession();
