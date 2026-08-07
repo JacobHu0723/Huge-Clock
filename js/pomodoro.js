@@ -933,7 +933,6 @@ function pomSettleExpiredFocus() {
   pomTaskInputEl.value = '';
   pomPauseUI();
   pomSaveSession(); // 自由番茄的 resets 计数保留；绑定任务重置后若无会话状态则自动清除
-  pomNotify('⏰ 间隔过长，上一个番茄钟已重置', false);
   pomRender();
 }
 // 结算一段被杀的休息（记录 breakSession + 达标检查），进入下一个番茄钟
