@@ -873,6 +873,7 @@ function pomSaveSession() {
   const data = {
     phaseIdx: pomPhaseIdx,
     running: pomRunning,
+    lastActiveAt: Date.now(), // 最后活跃时间：重进时判断间隔是否过长
     currentTodoId: pomCurrentTodoId,
     focusStreak: pomFocusStreak,
     lastFocusEndAt: pomLastFocusEndAt,
@@ -901,6 +902,79 @@ function pomSaveSession() {
 function pomClearSession() {
   localStorage.removeItem(POM_SESSION_KEY);
 }
+// 切回暂停态 UI（非运行）
+function pomPauseUI() {
+  pomRunning = false;
+  pomEndAt = null;
+  pomPanelEl.classList.remove('running');
+  pomFabEl.classList.remove('running');
+  pomTaskInputEl.removeAttribute('readonly');
+  pomToggleIconEl.textContent = '▶';
+}
+// 专注重进间隔过长：上一个未完成的番茄钟作废重置（reset+1，与历史连续性标准一致）
+function pomSettleExpiredFocus() {
+  if (pomCurrentTodoId) {
+    const t = pomTodos.find(x => x.id === pomCurrentTodoId);
+    if (t) { t.resetCount = (t.resetCount || 0) + 1; pomSaveTodos(); }
+  } else {
+    pomSessionResets++;
+  }
+  pomPhaseIdx = 0;
+  pomTimeLeft = POM_PHASES[0].duration;
+  pomCurrentTodoId = null;
+  pomFocusStartAt = null;
+  pomBreakStartAt = null;
+  pomTotalFocusDone = 0;
+  pomFocusStreak = 0;
+  pomLastFocusEndAt = null;
+  pomSessionIntInterrupts = 0;
+  pomSessionExtInterrupts = 0;
+  pomSessionSkippedBreaks = 0;
+  pomTaskInputEl.value = '';
+  pomPauseUI();
+  pomSaveSession(); // 自由番茄的 resets 计数保留；绑定任务重置后若无会话状态则自动清除
+  pomNotify('⏰ 间隔过长，上一个番茄钟已重置', false);
+  pomRender();
+}
+// 结算一段被杀的休息（记录 breakSession + 达标检查），进入下一个番茄钟
+function pomSettleKilledRest(endAt) {
+  if (pomCurrentTodoId) {
+    const t = pomTodos.find(x => x.id === pomCurrentTodoId);
+    if (t && pomBreakStartAt && endAt >= pomBreakStartAt) {
+      if (!Array.isArray(t.breakSessions)) t.breakSessions = [];
+      t.breakSessions.push({ startAt: pomBreakStartAt, endAt });
+      pomSaveTodos();
+    }
+  }
+  pomBreakStartAt = null;
+  if (pomIsCurrentTodoCompleted()) {
+    pomCurrentTodoId = null;
+    pomTaskInputEl.value = '';
+  }
+  if (pomTotalFocusDone >= pomTargetSessions) {
+    // 达标：先切回专注初始阶段，否则停留在休息标签却显示 25:00
+    pomPhaseIdx = 0;
+    pomTimeLeft = POM_PHASES[0].duration;
+    pomTotalFocusDone = 0;
+    pomCurrentTodoId = null;
+    pomSessionIntInterrupts = 0;
+    pomSessionExtInterrupts = 0;
+    pomSessionSkippedBreaks = 0;
+    pomSessionResets = 0;
+    pomTaskInputEl.value = '';
+    pomPauseUI();
+    pomClearSession();
+    pomNotify('✨ 任务已达标，开始下一个任务吧！', false);
+  } else {
+    pomPhaseIdx = 0;
+    pomTimeLeft = POM_PHASES[0].duration;
+    pomFocusStartAt = null;
+    pomPauseUI();
+    pomSaveSession();
+    pomNotify('⏱ 休息已结束，准备开始下一个番茄钟', false);
+  }
+  pomRender();
+}
 function pomRestoreSession() {
   let s = null;
   try { s = JSON.parse(localStorage.getItem(POM_SESSION_KEY) || 'null'); } catch (e) { s = null; }
@@ -917,20 +991,18 @@ function pomRestoreSession() {
   pomSessionSkippedBreaks = s.sessionSkippedBreaks || 0;
   pomSessionResets = s.sessionResets || 0;
   if (s.taskName) pomTaskInputEl.value = s.taskName;
-  // 切回暂停态 UI（非运行）
-  const pauseUI = () => {
-    pomRunning = false;
-    pomEndAt = null;
-    pomPanelEl.classList.remove('running');
-    pomFabEl.classList.remove('running');
-    pomTaskInputEl.removeAttribute('readonly');
-    pomToggleIconEl.textContent = '▶';
-  };
+  // 重进间隔：超过 POM_CONTINUITY_GAP 视为番茄钟已失去连续性
+  const gap = Date.now() - (Number.isFinite(s.lastActiveAt) ? s.lastActiveAt : Date.now());
   if (pomPhaseIdx === 0) {
+    if (gap > POM_CONTINUITY_GAP) {
+      // 间隔过长：上一个番茄钟已失去连续性，作废重置（与历史连续性标准一致）
+      pomSettleExpiredFocus();
+      return;
+    }
     // 专注：恢复冻结的剩余秒数，暂停等待（“准备”状态，等待用户点击开始）
     pomTimeLeft = Number.isFinite(s.focusTimeLeft) ? s.focusTimeLeft : POM_PHASES[0].duration;
     pomFocusStartAt = null; // 被杀/暂停时段不计入本次专注，重新开始后重新计时
-    pauseUI();
+    pomPauseUI();
     if (pomIsCurrentTodoCompleted()) {
       pomClearSession();
       pomCurrentTodoId = null;
@@ -955,49 +1027,21 @@ function pomRestoreSession() {
       pomInterval = setInterval(pomTick, 1000);
       pomNotify('🔄 已恢复休息计时', false);
     } else {
-      // 休息早已结束：记录这段被杀的休息，再进入下一个番茄钟，暂停等待（“准备”状态）
-      if (pomCurrentTodoId) {
-        const t = pomTodos.find(x => x.id === pomCurrentTodoId);
-        if (t && pomBreakStartAt && s.restEndAt >= pomBreakStartAt) {
-          if (!Array.isArray(t.breakSessions)) t.breakSessions = [];
-          t.breakSessions.push({ startAt: pomBreakStartAt, endAt: s.restEndAt });
-          pomSaveTodos();
-        }
-      }
-      pomBreakStartAt = null;
-      // 与正常休息结束一致：达标则重置等待新任务，未达标则进入专注准备态
-      if (pomIsCurrentTodoCompleted()) {
-        pomCurrentTodoId = null;
-        pomTaskInputEl.value = '';
-      }
-      if (pomTotalFocusDone >= pomTargetSessions) {
-        // 达标：先切回专注初始阶段（对照正常 rest-end 路径），否则停留在休息标签却显示 25:00，
-        // 此时按开始会以休息阶段跑一个 25 分钟的"休息"
-        pomPhaseIdx = 0;
-        pomTimeLeft = POM_PHASES[0].duration;
-        pomTotalFocusDone = 0;
-        pomCurrentTodoId = null;
-        pomSessionIntInterrupts = 0;
-        pomSessionExtInterrupts = 0;
-        pomSessionSkippedBreaks = 0;
-        pomSessionResets = 0;
-        pomTaskInputEl.value = '';
-        pauseUI();
-        pomClearSession();
-        pomNotify('✨ 任务已达标，开始下一个任务吧！', false);
-      } else {
-        pomPhaseIdx = 0;
-        pomTimeLeft = POM_PHASES[0].duration;
-        pomFocusStartAt = null;
-        pauseUI();
-        pomSaveSession();
-        pomNotify('⏱ 休息已结束，准备开始下一个番茄钟', false);
-      }
+      // 休息早已结束：结算这段被杀的休息（记录 breakSession + 达标检查），再进入下一个番茄钟
+      pomSettleKilledRest(s.restEndAt);
+      return;
     }
   } else {
+    if (gap > POM_CONTINUITY_GAP) {
+      // 休息暂停 + 间隔过长：自动结束休息（不算跳过休息），走正常休息结束逻辑
+      const restTimeLeft = Number.isFinite(s.restTimeLeft) ? s.restTimeLeft : POM_PHASES[pomPhaseIdx].duration;
+      const pauseAt = (pomBreakStartAt || Date.now()) + POM_PHASES[pomPhaseIdx].duration * 1000 - restTimeLeft * 1000;
+      pomSettleKilledRest(pauseAt);
+      return;
+    }
     // 休息暂停中被杀：恢复冻结的剩余秒数，暂停等待
     pomTimeLeft = Number.isFinite(s.restTimeLeft) ? s.restTimeLeft : POM_PHASES[pomPhaseIdx].duration;
-    pauseUI();
+    pomPauseUI();
     pomNotify('🔄 已恢复休息（暂停中）', false);
   }
   pomRender();
