@@ -285,6 +285,8 @@ function pomIsCurrentTodoCompleted() {
 }
 function pomStopForCompletedTodo(message) {
   pomTotalFocusDone = 0;
+  pomFocusStreak = 0;       // 任务完成后归零，避免残留导致空会话误存
+  pomLastFocusEndAt = null; // 同上
   pomSessionIntInterrupts = 0;
   pomSessionExtInterrupts = 0;
   pomSessionSkippedBreaks = 0;
@@ -482,6 +484,8 @@ function pomOnPhaseEnd() {
     if (pomTotalFocusDone >= pomTargetSessions) {
       // 任务已达标：重置进度，暂停等待用户开始下一个任务
       pomTotalFocusDone = 0;
+      pomFocusStreak = 0;       // 达标后归零，避免残留导致空会话误存
+      pomLastFocusEndAt = null; // 同上
       pomCurrentTodoId  = null;
       pomSessionIntInterrupts = 0;
       pomSessionExtInterrupts = 0;
@@ -1007,9 +1011,21 @@ function pomRestoreSession() {
       pomCurrentTodoId = null;
       pomTaskInputEl.value = '';
     } else {
-      pomSaveSession(); // 同步 session 为暂停态
+      // 防御：恢复的是"无实际内容"的会话（满时长、无任务、无计数）时静默清除，不弹恢复提示
+      const pointless = !pomCurrentTodoId &&
+        pomTimeLeft >= POM_PHASES[0].duration &&
+        pomTotalFocusDone <= 0 &&
+        pomSessionIntInterrupts <= 0 && pomSessionSkippedBreaks <= 0 && pomSessionResets <= 0 &&
+        !(s.taskName || '');
+      if (pointless) {
+        pomFocusStreak = 0;
+        pomLastFocusEndAt = null;
+        pomClearSession();
+      } else {
+        pomSaveSession(); // 同步 session 为暂停态
+        pomNotify('🔄 已恢复专注（暂停中），点击开始继续', false);
+      }
     }
-    pomNotify('🔄 已恢复专注（暂停中），点击开始继续', false);
   } else if (Number.isFinite(s.restEndAt)) {
     // 休息运行中被杀：时间照常流逝
     const remaining = Math.max(0, Math.round((s.restEndAt - Date.now()) / 1000));
