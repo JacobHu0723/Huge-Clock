@@ -1,5 +1,5 @@
 // 版本号变更会触发 Service Worker 更新并清除旧缓存
-const CACHE_VERSION = 'huge-clock-v47';
+const CACHE_VERSION = 'huge-clock-v48';
 
 // 缓存清单：相对路径（相对于 sw.js 作用域），首项 './' 即应用目录入口本身，
 // 恰好等于 PWA start_url 的导航请求（.../Huge-Clock/），离线导航可精确命中。
